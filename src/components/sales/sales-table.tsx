@@ -25,7 +25,9 @@ import {
   User,
   AlertTriangle,
   X,
-  Truck
+  Truck,
+  Bike,
+  Store
 } from 'lucide-react'
 import { Sale, Credit, StoreStockTransfer } from '@/types'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -242,7 +244,7 @@ export function SalesTable({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30 dark:hover:text-green-300'
+        return 'bg-[#fce4f0] text-[#d06a98] hover:bg-[#f29fc8]/30 hover:text-[#c55a88] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8] dark:hover:bg-[#f29fc8]/30 dark:hover:text-[#f29fc8]'
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 hover:text-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-400 dark:hover:bg-yellow-900/30 dark:hover:text-yellow-300'
       case 'cancelled':
@@ -316,15 +318,15 @@ export function SalesTable({
   const getPaymentMethodColor = (method: string) => {
     switch (method) {
       case 'cash':
-        return 'bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30 dark:hover:text-green-300'
+        return 'bg-[#fce4f0] text-[#d06a98] hover:bg-[#f29fc8]/30 hover:text-[#c55a88] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8] dark:hover:bg-[#f29fc8]/30 dark:hover:text-[#f29fc8]'
       case 'credit':
-        return 'bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30 dark:hover:text-green-300'
+        return 'bg-[#fce4f0] text-[#d06a98] hover:bg-[#f29fc8]/30 hover:text-[#c55a88] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8] dark:hover:bg-[#f29fc8]/30 dark:hover:text-[#f29fc8]'
       case 'transfer':
-        return 'bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30 dark:hover:text-green-300'
+        return 'bg-[#fce4f0] text-[#d06a98] hover:bg-[#f29fc8]/30 hover:text-[#c55a88] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8] dark:hover:bg-[#f29fc8]/30 dark:hover:text-[#f29fc8]'
       case 'warranty':
-        return 'bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30 dark:hover:text-green-300'
+        return 'bg-[#fce4f0] text-[#d06a98] hover:bg-[#f29fc8]/30 hover:text-[#c55a88] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8] dark:hover:bg-[#f29fc8]/30 dark:hover:text-[#f29fc8]'
       case 'mixed':
-        return 'bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30 dark:hover:text-green-300'
+        return 'bg-[#fce4f0] text-[#d06a98] hover:bg-[#f29fc8]/30 hover:text-[#c55a88] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8] dark:hover:bg-[#f29fc8]/30 dark:hover:text-[#f29fc8]'
       default:
         return 'bg-gray-100 text-gray-800 hover:bg-gray-200 hover:text-gray-900 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-gray-200'
     }
@@ -455,18 +457,18 @@ export function SalesTable({
                 placeholder={isSearching ? "Buscando..." : "Buscar factura o cliente..."}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 md:pl-10 pr-10 md:pr-4 py-2 md:py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full pl-9 md:pl-10 pr-10 md:pr-4 py-2 md:py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#f29fc8] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
               {isSearching && (
                 <div className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#f29fc8]"></div>
                 </div>
               )}
             </div>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full sm:w-auto sm:min-w-[200px] px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
+              className="w-full sm:w-auto sm:min-w-[200px] px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#f29fc8] focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
             >
               {statuses.map(status => (
                 <option key={status} value={status}>
@@ -486,7 +488,7 @@ export function SalesTable({
         <CardContent className="p-0">
           {isSearching ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f29fc8] mx-auto mb-4"></div>
               <p className="text-gray-500 dark:text-gray-400">Buscando ventas...</p>
             </div>
           ) : filteredSales.length === 0 ? (
@@ -526,6 +528,17 @@ export function SalesTable({
                               <FileText className="h-3.5 w-3.5 text-[#f29fc8] dark:text-[#f29fc8] flex-shrink-0" />
                             )}
                             <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{generateInvoiceNumber(sale)}</span>
+                            {sale.isDelivery ? (
+                              <span className="flex items-center gap-1 text-[#f29fc8]">
+                                <Bike className="h-3.5 w-3.5 flex-shrink-0" />
+                                <span className="text-xs">Domicilio</span>
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                                <Store className="h-3.5 w-3.5 flex-shrink-0" />
+                                <span className="text-xs">Tienda</span>
+                              </span>
+                            )}
                             {sale.paymentMethod === 'credit' && credits[sale.id] && (
                               <span className="text-xs font-mono text-orange-600 dark:text-orange-400">
                                 Crédito #{getCreditId(credits[sale.id])}
@@ -550,7 +563,7 @@ export function SalesTable({
                               {(() => {
                                 const effectiveStatus = getEffectiveStatus(sale)
                                 if (effectiveStatus === 'completed') {
-                                  return <span className="text-green-600 dark:text-green-400">●</span>
+                                  return <span className="text-[#d06a98] dark:text-[#f29fc8]">●</span>
                                 } else if (effectiveStatus === 'cancelled') {
                                   return <span className="text-red-600 dark:text-red-400">●</span>
                                 } else {
@@ -570,9 +583,9 @@ export function SalesTable({
                             className="h-8 w-8 p-0"
                           >
                             {isExpanded ? (
-                              <ChevronUp className="h-5 w-5 text-[#f29fc8] dark:text-green-400" />
+                              <ChevronUp className="h-5 w-5 text-[#f29fc8] dark:text-[#f29fc8]" />
                             ) : (
-                              <ChevronDown className="h-5 w-5 text-[#f29fc8] dark:text-green-400" />
+                              <ChevronDown className="h-5 w-5 text-[#f29fc8] dark:text-[#f29fc8]" />
                             )}
                           </Button>
                           </div>
@@ -710,9 +723,18 @@ export function SalesTable({
                                   <span className="font-semibold">{formatCurrency(sale.tax)}</span>
                                 </div>
                               )}
+                              {sale.isDelivery && sale.deliveryFee && sale.deliveryFee > 0 && (
+                                <div className="flex justify-between">
+                                  <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                    <Bike className="h-3.5 w-3.5 text-[#f29fc8]" />
+                                    Domicilio:
+                                  </span>
+                                  <span className="font-semibold text-[#d06a98] dark:text-[#f29fc8]">{formatCurrency(sale.deliveryFee)}</span>
+                                </div>
+                              )}
                               <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
                                 <span className="font-bold text-gray-900 dark:text-white">Total:</span>
-                                <span className="font-bold text-[#f29fc8] dark:text-green-400">{formatCurrency(sale.total)}</span>
+                                <span className="font-bold text-[#f29fc8] dark:text-[#f29fc8]">{formatCurrency(sale.total)}</span>
                               </div>
                             </div>
                           </div>
@@ -782,12 +804,12 @@ export function SalesTable({
                                     {cancelSuccessMessage[sale.id] && (
                                       <div className={`p-3 rounded-lg border-2 ${
                                         cancelSuccessMessage[sale.id].includes('exitosamente')
-                                          ? 'border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800'
+                                          ? 'border-[#f29fc8]/30 bg-[#fce4f0] dark:bg-[#f29fc8]/20 dark:border-[#f29fc8]/30'
                                           : 'border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800'
                                       }`}>
                                         <div className={`text-sm font-medium ${
                                           cancelSuccessMessage[sale.id].includes('exitosamente')
-                                            ? 'text-green-800 dark:text-green-200'
+                                            ? 'text-[#d06a98] dark:text-[#f29fc8]'
                                             : 'text-red-800 dark:text-red-200'
                                         }`}>
                                           {cancelSuccessMessage[sale.id].split('\n').map((line, index) => (
@@ -951,8 +973,19 @@ export function SalesTable({
                                   <div className="flex items-center gap-3">
                                     <div className="flex-1">
                                       <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Factura</div>
-                                      <div className="text-xl font-bold text-gray-900 dark:text-white">
+                                      <div className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                         {generateInvoiceNumber(sale)}
+                                        {sale.isDelivery ? (
+                                          <span className="flex items-center gap-1 text-[#f29fc8]">
+                                            <Bike className="h-4 w-4 flex-shrink-0" />
+                                            <span className="text-sm font-medium">Domicilio</span>
+                                          </span>
+                                        ) : (
+                                          <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                                            <Store className="h-4 w-4 flex-shrink-0" />
+                                            <span className="text-sm font-medium">Tienda</span>
+                                          </span>
+                                        )}
                                       </div>
                                     </div>
                                     {sale.paymentMethod === 'credit' && credits[sale.id] && (
@@ -1006,9 +1039,9 @@ export function SalesTable({
                               title={isExpanded ? "Ocultar detalle" : "Ver detalle"}
                             >
                               {isExpanded ? (
-                                <ChevronUp className="h-5 w-5 text-[#f29fc8] dark:text-green-400 font-bold" />
+                                <ChevronUp className="h-5 w-5 text-[#f29fc8] dark:text-[#f29fc8] font-bold" />
                               ) : (
-                                <ChevronDown className="h-5 w-5 text-[#f29fc8] dark:text-green-400 font-bold" />
+                                <ChevronDown className="h-5 w-5 text-[#f29fc8] dark:text-[#f29fc8] font-bold" />
                               )}
                             </Button>
                           </div>
@@ -1095,7 +1128,7 @@ export function SalesTable({
                                     >
                                       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
                                         <div className="flex items-center gap-2">
-                                          <Package className="h-5 w-5 text-[#f29fc8] dark:text-green-400" />
+                                          <Package className="h-5 w-5 text-[#f29fc8] dark:text-[#f29fc8]" />
                                           <div>
                                             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Producto</div>
                                             <div className="text-sm font-bold text-gray-900 dark:text-white">
@@ -1162,9 +1195,20 @@ export function SalesTable({
                                     </div>
                                   </div>
                                 )}
+                                {sale.isDelivery && sale.deliveryFee && sale.deliveryFee > 0 && (
+                                  <div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                                      <Bike className="h-3.5 w-3.5 text-[#f29fc8]" />
+                                      Domicilio
+                                    </div>
+                                    <div className="text-sm font-semibold text-[#d06a98] dark:text-[#f29fc8]">
+                                      {formatCurrency(sale.deliveryFee)}
+                                    </div>
+                                  </div>
+                                )}
                                 <div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total</div>
-                                  <div className="text-base font-bold text-[#f29fc8] dark:text-green-400">
+                                  <div className="text-base font-bold text-[#f29fc8] dark:text-[#f29fc8]">
                                     {formatCurrency(sale.total)}
                                   </div>
                                 </div>
@@ -1192,7 +1236,7 @@ export function SalesTable({
                                     <span>Stock devuelto</span>
                                   </div>
                                   <div className="flex items-center space-x-2">
-                                    <Receipt className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                    <Receipt className="h-4 w-4 text-[#d06a98] dark:text-[#f29fc8]" />
                                     <span>Dinero devuelto</span>
                                   </div>
                                 </div>
@@ -1236,12 +1280,12 @@ export function SalesTable({
                                     {cancelSuccessMessage[sale.id] && (
                                       <div className={`p-3 rounded-lg border-2 ${
                                         cancelSuccessMessage[sale.id].includes('exitosamente')
-                                          ? 'border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800'
+                                          ? 'border-[#f29fc8]/30 bg-[#fce4f0] dark:bg-[#f29fc8]/20 dark:border-[#f29fc8]/30'
                                           : 'border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800'
                                       }`}>
                                         <div className="text-sm font-medium ${
                                           cancelSuccessMessage[sale.id].includes('exitosamente')
-                                            ? 'text-green-800 dark:text-green-200'
+                                            ? 'text-[#d06a98] dark:text-[#f29fc8]'
                                             : 'text-red-800 dark:text-red-200'
                                         }">
                                           {cancelSuccessMessage[sale.id].split('\n').map((line, index) => (

@@ -130,17 +130,21 @@ export interface Client {
   name: string
   email: string
   phone: string
+  whatsapp?: string // Número de WhatsApp
   document: string
   address: string
+  referencePoint?: string // Punto de referencia para domicilios
   city: string
   state: string
-  type: 'minorista' | 'mayorista' | 'consumidor_final'
+  type: 'cliente' // Todos son clientes finales
   creditLimit: number
   currentDebt: number
+  points: number // Puntos acumulados por compras
   status: 'active' | 'inactive'
   nit?: string
   storeId?: string // ID de la tienda a la que pertenece el cliente
   createdAt: string
+  lastPurchaseAt?: string // Fecha de última compra
 }
 
 export interface CompanyConfig {
@@ -239,6 +243,8 @@ export interface Sale {
   sellerName?: string
   sellerEmail?: string
   storeId?: string // ID de la tienda donde se realizó la venta
+  isDelivery?: boolean // true = domicilio, false = venta en tienda física
+  deliveryFee?: number // Valor del domicilio
   createdAt: string
   items: SaleItem[]
   creditStatus?: 'pending' | 'partial' | 'completed' | 'overdue' | 'cancelled' // Estado del crédito asociado (solo para ventas a crédito)

@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import { Sidebar } from '@/components/ui/sidebar'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { BetaBanner } from '@/components/ui/beta-banner'
+import { MobileNavWrapper } from '@/components/ui/mobile-nav-wrapper'
 import { useState } from 'react'
 import { useStoreUrl } from '@/hooks/use-store-url'
 
@@ -32,10 +33,11 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
           isMobileMenuOpen ? 'blur-sm' : ''
         }`}>
           <BetaBanner />
-          <div className="flex-1 overflow-auto bg-white dark:bg-gray-900">
+          <div className="flex-1 overflow-auto bg-white dark:bg-gray-900 pb-20 xl:pb-0">
             {children}
           </div>
         </main>
+        <MobileNavWrapper />
       </div>
     </ProtectedRoute>
   )

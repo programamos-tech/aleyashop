@@ -191,7 +191,9 @@ export class SalesService {
             createdAt: sale.created_at,
             items: itemsWithReferences,
             creditStatus: creditStatus, // Estado del crédito asociado
-            cancellationReason: sale.cancellation_reason || undefined
+            cancellationReason: sale.cancellation_reason || undefined,
+            isDelivery: sale.is_delivery || false,
+            deliveryFee: sale.delivery_fee || 0
           }
         })
       )
@@ -457,7 +459,9 @@ export class SalesService {
         storeId: sale.store_id || undefined,
         createdAt: sale.created_at,
         items: itemsWithReferences,
-        cancellationReason: sale.cancellation_reason || undefined
+        cancellationReason: sale.cancellation_reason || undefined,
+        isDelivery: sale.is_delivery || false,
+        deliveryFee: sale.delivery_fee || 0
       }
         })
       )
@@ -587,7 +591,9 @@ export class SalesService {
         sellerEmail: data.seller_email,
         storeId: data.store_id || undefined,
         createdAt: data.created_at,
-        items: itemsWithReferences
+        items: itemsWithReferences,
+        isDelivery: data.is_delivery || false,
+        deliveryFee: data.delivery_fee || 0
       }
 
       console.log('🔍 DEBUG getSaleById - result.items:', result.items)
@@ -612,6 +618,12 @@ export class SalesService {
       const storeId = getCurrentUserStoreId()
 
       // Crear la venta
+      console.log('Creando venta con datos:', {
+        isDelivery: saleData.isDelivery,
+        deliveryFee: saleData.deliveryFee,
+        total: saleData.total
+      })
+      
       const { data: sale, error: saleError } = await supabase
         .from('sales')
         .insert({
@@ -627,13 +639,15 @@ export class SalesService {
           seller_id: currentUser?.id || currentUserId,
           seller_name: currentUser?.name || 'Usuario',
           seller_email: currentUser?.email || '',
-          store_id: storeId || '00000000-0000-0000-0000-000000000001' // Tienda principal por defecto
+          store_id: storeId || '00000000-0000-0000-0000-000000000001', // Tienda principal por defecto
+          is_delivery: Boolean(saleData.isDelivery),
+          delivery_fee: Number(saleData.deliveryFee) || 0
         })
         .select()
         .single()
 
       if (saleError) {
-      // Error silencioso en producción
+        console.error('Error al crear venta en Supabase:', JSON.stringify(saleError, null, 2))
         throw saleError
       }
 
@@ -1589,7 +1603,9 @@ export class SalesService {
           discountType: item.discount_type || 'amount',
           tax: item.tax || 0,
           total: item.total
-        })) || []
+        })) || [],
+        isDelivery: sale.is_delivery || false,
+        deliveryFee: sale.delivery_fee || 0
       })) || []
 
       // Si el término es numérico, priorizar resultados que coincidan con el número de factura
@@ -1751,7 +1767,9 @@ export class SalesService {
           createdAt: sale.created_at,
           items,
           payments: payments.length > 0 ? payments : undefined,
-          creditStatus: creditStatus // Estado del crédito asociado
+          creditStatus: creditStatus, // Estado del crédito asociado
+          isDelivery: sale.is_delivery || false,
+          deliveryFee: sale.delivery_fee || 0
         }
       }) || [])
     } catch (error) {
@@ -1931,7 +1949,9 @@ export class SalesService {
               amount: payment.amount,
               createdAt: payment.created_at,
               updatedAt: payment.updated_at || payment.created_at
-            })) || []
+            })) || [],
+            isDelivery: sale.is_delivery || false,
+            deliveryFee: sale.delivery_fee || 0
           }
         })
 

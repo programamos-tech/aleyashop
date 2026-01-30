@@ -15,7 +15,8 @@ import {
   Package,
   Eye,
   Edit,
-  Truck
+  Truck,
+  Bike
 } from 'lucide-react'
 import { Sale, CompanyConfig, Client, Credit, StoreStockTransfer } from '@/types'
 import { CompanyService } from '@/lib/company-service'
@@ -666,7 +667,15 @@ export default function SaleDetailModal({
           <div className="flex items-center space-x-3">
             <Receipt className="h-6 w-6 text-[#f29fc8]" />
             <div>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Detalle de Venta</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                Detalle de Venta
+                {sale.isDelivery && (
+                  <Badge className="bg-[#fce4f0] text-[#d06a98] border-[#f29fc8] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8] dark:border-[#f29fc8] flex items-center gap-1">
+                    <Bike className="h-4 w-4" />
+                    Domicilio
+                  </Badge>
+                )}
+              </h2>
               <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">{getInvoiceNumber(sale)}</p>
             </div>
           </div>
@@ -803,6 +812,26 @@ export default function SaleDetailModal({
                       </Badge>
                     </div>
                   </div>
+                  
+                  {/* Indicador de domicilio */}
+                  {sale.isDelivery && (
+                    <div className="flex items-center space-x-3">
+                      <Bike className="h-5 w-5 text-[#f29fc8]" />
+                      <div>
+                        <div className="text-sm text-gray-600 dark:text-gray-300">Tipo de Entrega</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge className="bg-[#fce4f0] text-[#d06a98] border-[#f29fc8] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8] dark:border-[#f29fc8]">
+                            Domicilio
+                          </Badge>
+                          {sale.deliveryFee && sale.deliveryFee > 0 && (
+                            <span className="text-sm font-medium text-[#d06a98] dark:text-[#f29fc8]">
+                              (${sale.deliveryFee.toLocaleString('es-CO')})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Sección de Pagos Mixtos */}
@@ -832,7 +861,7 @@ export default function SaleDetailModal({
                       <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
                         <div className="flex justify-between items-center font-medium">
                           <span className="text-gray-900 dark:text-white">Total:</span>
-                          <span className="text-emerald-600 dark:text-emerald-400">
+                          <span className="text-[#f29fc8] dark:text-[#f29fc8]">
                             ${sale.payments.reduce((sum, payment) => sum + payment.amount, 0).toLocaleString('es-CO')}
                           </span>
                         </div>
@@ -844,7 +873,7 @@ export default function SaleDetailModal({
                 <div className="mt-4 pt-4 border-t border-gray-600">
                   <div className="flex items-center space-x-3">
                     <div className="h-5 w-5 flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+                      <div className="w-3 h-3 rounded-full bg-[#f29fc8]"></div>
                     </div>
                     <div>
                       <div className="text-sm text-gray-600 dark:text-gray-300">Estado</div>

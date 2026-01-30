@@ -18,7 +18,8 @@ import {
   AlertTriangle,
   CheckCircle,
   ArrowLeft,
-  ShoppingCart
+  ShoppingCart,
+  Bike
 } from 'lucide-react'
 import { RoleProtectedRoute } from '@/components/auth/role-protected-route'
 import { Sale, SaleItem, Product, Client, SalePayment } from '@/types'
@@ -66,6 +67,8 @@ export default function NewSalePage() {
   const [showMixedPayments, setShowMixedPayments] = useState(false)
   const [paymentError, setPaymentError] = useState('')
   const [receivedAmount, setReceivedAmount] = useState<string>('')
+  const [isDelivery, setIsDelivery] = useState(false) // true = domicilio, false = venta en tienda
+  const [deliveryFee, setDeliveryFee] = useState<number>(0) // Valor del domicilio
 
   useEffect(() => {
     getAllClients()
@@ -295,9 +298,8 @@ export default function NewSalePage() {
   }
 
   const getClientTypeColor = (type: string) => {
-    if (type === 'mayorista') return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600'
-    if (type === 'minorista') return 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-600'
-    return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-600'
+    // Todos los clientes usan el color rosa de la marca
+    return 'bg-[#fce4f0] text-[#d06a98] border-[#f29fc8] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8] dark:border-[#f29fc8]'
   }
 
   const handleAddProduct = (product: Product) => {
@@ -539,8 +541,8 @@ export default function NewSalePage() {
   }, [subtotal, includeTax])
 
   const total = useMemo(() => {
-    return subtotal + tax
-  }, [subtotal, tax])
+    return subtotal + tax + (isDelivery ? deliveryFee : 0)
+  }, [subtotal, tax, isDelivery, deliveryFee])
 
   const getTotalMixedPayments = () => {
     return mixedPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0)
@@ -708,7 +710,9 @@ export default function NewSalePage() {
       paymentMethod,
       payments: paymentMethod === 'mixed' ? mixedPayments : undefined,
       items: saleItems,
-      invoiceNumber: undefined
+      invoiceNumber: undefined,
+      isDelivery: isDelivery, // true = domicilio, false = venta física
+      deliveryFee: isDelivery ? deliveryFee : 0 // Valor del domicilio
     }
 
     try {
@@ -1051,8 +1055,7 @@ export default function NewSalePage() {
                                   </div>
                                   <div className="flex-shrink-0">
                                     <Badge className={`${getClientTypeColor(client.type)} text-xs whitespace-nowrap`}>
-                                      {client.type === 'mayorista' ? 'Mayorista' : 
-                                       client.type === 'minorista' ? 'Minorista' : 'Consumidor Final'}
+                                      Cliente
                                     </Badge>
                                   </div>
                                 </div>
@@ -1095,8 +1098,7 @@ export default function NewSalePage() {
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <Badge className={`${getClientTypeColor(selectedClient.type)} text-xs whitespace-nowrap`}>
-                            {selectedClient.type === 'mayorista' ? 'Mayorista' : 
-                             selectedClient.type === 'minorista' ? 'Minorista' : 'Consumidor Final'}
+                            Cliente
                           </Badge>
                           <Button
                             onClick={handleRemoveClient}
@@ -1140,6 +1142,53 @@ export default function NewSalePage() {
                       <option value="transfer">Transferencia</option>
                       <option value="mixed">Mixto</option>
                     </select>
+
+                    {/* Checkbox de Domicilio */}
+                    <div 
+                      className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                        isDelivery 
+                          ? 'bg-[#fce4f0] border-[#f29fc8] dark:bg-[#f29fc8]/20' 
+                          : 'bg-gray-50 border-gray-200 dark:bg-gray-700 dark:border-gray-600'
+                      }`}
+                      onClick={() => {
+                        if (isDelivery) {
+                          setDeliveryFee(0) // Resetear el valor al desactivar
+                        }
+                        setIsDelivery(!isDelivery)
+                      }}
+                    >
+                      <div className={`w-5 h-5 rounded flex items-center justify-center ${
+                        isDelivery 
+                          ? 'bg-[#f29fc8] text-white' 
+                          : 'bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500'
+                      }`}>
+                        {isDelivery && <CheckCircle className="h-4 w-4" />}
+                      </div>
+                      <Bike className={`h-5 w-5 ${isDelivery ? 'text-[#d06a98] dark:text-[#f29fc8]' : 'text-gray-400'}`} />
+                      <span className={`text-sm font-medium ${isDelivery ? 'text-[#d06a98] dark:text-[#f29fc8]' : 'text-gray-600 dark:text-gray-400'}`}>
+                        Domicilio
+                      </span>
+                    </div>
+
+                    {/* Campo de valor del domicilio */}
+                    {isDelivery && (
+                      <div className="space-y-1">
+                        <label className="text-xs text-gray-600 dark:text-gray-400">
+                          Valor del domicilio:
+                        </label>
+                        <input
+                          type="text"
+                          value={deliveryFee ? deliveryFee.toLocaleString('es-CO') : ''}
+                          onChange={(e) => {
+                            const cleanValue = e.target.value.replace(/[^\d]/g, '')
+                            setDeliveryFee(parseInt(cleanValue) || 0)
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full px-3 py-2 border border-[#f29fc8] rounded-lg focus:ring-2 focus:ring-[#f29fc8] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="$ 0"
+                        />
+                      </div>
+                    )}
 
                   {showMixedPayments && (
                     <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -1289,6 +1338,15 @@ export default function NewSalePage() {
                           <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                             <span>IVA calculado:</span>
                             <span>{formatCurrency(tax)}</span>
+                          </div>
+                        )}
+                        {isDelivery && deliveryFee > 0 && (
+                          <div className="flex justify-between text-xs text-[#d06a98] dark:text-[#f29fc8]">
+                            <span className="flex items-center gap-1">
+                              <Bike className="h-3.5 w-3.5" />
+                              Domicilio:
+                            </span>
+                            <span>{formatCurrency(deliveryFee)}</span>
                           </div>
                         )}
                         <div className="flex justify-between text-base font-bold pt-2 border-t border-gray-200 dark:border-gray-700">

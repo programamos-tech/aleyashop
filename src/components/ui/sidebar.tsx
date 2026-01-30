@@ -188,13 +188,15 @@ export function Sidebar({ className, onMobileMenuToggle }: SidebarProps) {
                 return pathname === subitem.href
               })
               
-              // Para créditos, productos, ventas y stores, también considerar activo si la ruta empieza con el href
+              // Para cada elemento, solo considerar activo si la ruta coincide exactamente o empieza con su href
               const isActive = pathname === item.href || 
                 (item.href === '/payments' && pathname?.startsWith('/payments')) ||
-                (item.href === '/inventory/products' && pathname?.startsWith('/inventory')) ||
-                (item.href === '/clients' && (pathname?.startsWith('/clients') || pathname?.startsWith('/sales') || pathname?.startsWith('/payments') || pathname?.startsWith('/warranties'))) ||
-                (item.href === '/stores' && (pathname?.startsWith('/stores') || pathname?.startsWith('/roles') || pathname?.startsWith('/logs'))) ||
-                (item.href === '/stores' && pathname?.startsWith('/stores')) ||
+                (item.href === '/inventory/products' && pathname?.startsWith('/inventory/products')) ||
+                (item.href === '/clients' && pathname?.startsWith('/clients')) ||
+                (item.href === '/sales' && pathname?.startsWith('/sales')) ||
+                (item.href === '/warranties' && pathname?.startsWith('/warranties')) ||
+                (item.href === '/roles' && pathname?.startsWith('/roles')) ||
+                (item.href === '/logs' && pathname?.startsWith('/logs')) ||
                 isSubmenuActive
               
               // Color rosa de la marca para todos los elementos activos

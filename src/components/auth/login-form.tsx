@@ -51,16 +51,11 @@ export function LoginForm() {
         {/* Logo y Título */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
-            <div className="relative">
-              <img 
-                src="/logo.jpeg" 
-                alt="Aleya Shop Logo"
-                className="w-20 h-20 rounded-xl shadow-lg object-cover"
-              />
-              <div className="absolute -top-2 -right-2 h-6 w-6 bg-[#f29fc8] rounded-full flex items-center justify-center">
-                <div className="h-2 w-2 bg-white rounded-full"></div>
-              </div>
-            </div>
+            <img 
+              src="/logo.jpeg" 
+              alt="Aleya Shop Logo"
+              className="w-20 h-20 rounded-xl shadow-lg object-cover"
+            />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Aleya Shop
@@ -159,24 +154,23 @@ export function LoginForm() {
               </Button>
             </form>
 
-            {/* Información de Demo - Oculto en producción */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mt-6 p-4 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg border border-[#f29fc8]/30 dark:border-[#f29fc8]/50">
-                <h3 className="text-sm font-semibold text-[#d06a98] dark:text-[#f29fc8] mb-2">
-                  Credenciales de Demo
-                </h3>
-                <div className="text-xs text-[#c45a88] dark:text-[#f29fc8]/80 space-y-1">
-                  <p><strong>Email:</strong> admin@aleyashop.com</p>
-                  <p><strong>Contraseña:</strong> admin123</p>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-gray-500 dark:text-gray-400">
           <p>© 2026 Aleya Shop. Todos los derechos reservados.</p>
+          <p className="mt-2">
+            powered by{' '}
+            <a 
+              href="https://programamos.studio" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-[#f29fc8] hover:text-[#d06a98] font-medium transition-colors"
+            >
+              programamos.studio
+            </a>
+          </p>
         </div>
       </div>
     </div>

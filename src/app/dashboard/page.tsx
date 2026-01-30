@@ -1326,7 +1326,7 @@ export default function DashboardPage() {
       .filter(day => day.amount > 0) // Solo mostrar días con ventas
 
     const paymentMethodData = [
-      { name: 'Efectivo', value: cashRevenue, color: '#10B981' },
+      { name: 'Efectivo', value: cashRevenue, color: '#f29fc8' },
       { name: 'Transferencia', value: transferRevenue, color: '#3B82F6' },
       { name: 'Crédito', value: creditRevenue, color: '#F59E0B' }
     ].filter(item => item.value > 0)
@@ -1692,8 +1692,8 @@ export default function DashboardPage() {
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <DollarSign className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+            <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+              <DollarSign className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
             </div>
             <div className="text-right">
               <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Efectivo</span>
@@ -1718,8 +1718,8 @@ export default function DashboardPage() {
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <TrendingUp className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+            <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+              <TrendingUp className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
             </div>
             <div className="text-right">
               <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Transferencia</span>
@@ -1747,8 +1747,8 @@ export default function DashboardPage() {
               className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="p-1.5 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                  <XCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+                  <XCircle className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
                 </div>
                 <div className="text-right">
                   <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Facturas Anuladas</span>
@@ -1773,8 +1773,8 @@ export default function DashboardPage() {
               className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="p-1.5 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                  <CreditCard className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
+                <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+                  <CreditCard className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
                 </div>
                 <div className="text-right">
                   <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Crédito</span>
@@ -1814,8 +1814,8 @@ export default function DashboardPage() {
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col h-full"
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                <CreditCard className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
+              <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+                <CreditCard className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
               </div>
               <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Dinero Afuera</span>
             </div>
@@ -1837,8 +1837,8 @@ export default function DashboardPage() {
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col h-full"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-              <Shield className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+            <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+              <Shield className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
             </div>
             <div className="text-right">
               <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Garantías Completadas</span>
@@ -1859,8 +1859,8 @@ export default function DashboardPage() {
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col h-full"
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <TrendingUp className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+              <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+                <TrendingUp className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
               </div>
               <div className="text-right">
                 <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Ganancia Bruta</span>
@@ -1887,15 +1887,15 @@ export default function DashboardPage() {
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col h-full"
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                <Package className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+              <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+                <Package className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
               </div>
               <div className="text-right">
                 <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Productos en Stock</span>
                 <p className="text-[10px] md:text-xs text-gray-400 dark:text-gray-500 mt-0.5">Stock Total</p>
               </div>
             </div>
-            <p className="text-xl md:text-2xl font-bold text-cyan-600 dark:text-cyan-400 mb-1">
+            <p className="text-xl md:text-2xl font-bold text-[#d06a98] dark:text-[#f29fc8] mb-1">
               {formatCurrency(metrics.totalStockInvestment > 0 ? metrics.totalStockInvestment : metrics.potentialInvestment)}
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -1920,8 +1920,8 @@ export default function DashboardPage() {
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col h-full"
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                <CreditCard className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
+              <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+                <CreditCard className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
               </div>
               <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Créditos</span>
             </div>
@@ -1931,7 +1931,7 @@ export default function DashboardPage() {
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
               créditos pendientes/parciales
             </p>
-            <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+            <p className="text-lg font-bold text-[#d06a98] dark:text-[#f29fc8]">
               {formatCurrency(metrics.totalDebt || 0)}
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -1945,8 +1945,8 @@ export default function DashboardPage() {
             onClick={() => setShowCancelledModal(true)}
           >
             <div className="flex items-center justify-between mb-2 md:mb-4">
-              <div className="p-1.5 md:p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                <XCircle className="h-4 w-4 md:h-5 md:w-5 text-red-600 dark:text-red-400" />
+              <div className="p-1.5 md:p-2 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+                <XCircle className="h-4 w-4 md:h-5 md:w-5 text-[#d06a98] dark:text-[#f29fc8]" />
               </div>
               <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Facturas Anuladas</span>
             </div>
@@ -1961,13 +1961,13 @@ export default function DashboardPage() {
             <div className="pt-2 md:pt-3 border-t border-gray-200 dark:border-gray-600 space-y-1.5 md:space-y-2 mt-auto">
               <div className="flex items-center justify-between text-xs md:text-sm">
                 <span className="text-gray-600 dark:text-gray-400">Tasa:</span>
-                <span className="font-semibold text-red-600 dark:text-red-400">
+                <span className="font-semibold text-[#d06a98] dark:text-[#f29fc8]">
                   {metrics.totalSales > 0 ? ((metrics.cancelledSales / metrics.totalSales) * 100).toFixed(1) : 0}%
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs md:text-sm">
                 <span className="text-gray-600 dark:text-gray-400">Valor perdido:</span>
-                <span className="font-semibold text-orange-600 dark:text-orange-400">
+                <span className="font-semibold text-[#d06a98] dark:text-[#f29fc8]">
                   {formatCurrency(metrics.lostValue)}
                 </span>
               </div>
@@ -1975,7 +1975,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowCancelledModal(true)}
-                  className="text-[10px] md:text-xs text-blue-600 dark:text-blue-400 font-medium flex items-center justify-center gap-1 hover:underline focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
+                  className="text-[10px] md:text-xs text-[#d06a98] dark:text-[#f29fc8] font-medium flex items-center justify-center gap-1 hover:underline focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
                 >
                   <BarChart3 className="h-2.5 w-2.5 md:h-3 md:w-3" />
                   <span className="hidden sm:inline">Haz clic para ver análisis detallado</span>
@@ -2070,7 +2070,7 @@ export default function DashboardPage() {
                   // Colores adaptativos para modo oscuro
                   const gridColor = isDarkMode ? '#111827' : '#f0f0f0' // Grid casi invisible en modo oscuro
                   const axisColor = isDarkMode ? '#6b7280' : '#666'
-                  const lineColor = isDarkMode ? '#34d399' : '#10B981' // Verde más claro en modo oscuro
+                  const lineColor = isDarkMode ? '#f29fc8' : '#d06a98' // Rosa de la marca
                   const dotStrokeColor = isDarkMode ? '#111827' : '#fff'
                   const tooltipBg = isDarkMode ? '#1f2937' : 'white'
                   const tooltipBorder = isDarkMode ? '#374151' : '#e5e7eb'
@@ -2267,7 +2267,7 @@ export default function DashboardPage() {
                 // Colores adaptativos para modo oscuro
                 const gridColor = isDarkMode ? '#374151' : '#e5e7eb' // Grid más visible
                 const axisColor = isDarkMode ? '#9ca3af' : '#666'
-                const lineColor = isDarkMode ? '#34d399' : '#10B981' // Verde más claro en modo oscuro
+                const lineColor = isDarkMode ? '#f29fc8' : '#d06a98' // Rosa de la marca
                 const dotStrokeColor = isDarkMode ? '#111827' : '#fff'
                 const tooltipBg = isDarkMode ? '#1f2937' : 'white'
                 const tooltipBorder = isDarkMode ? '#374151' : '#e5e7eb'
@@ -2342,8 +2342,8 @@ export default function DashboardPage() {
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                    <Package className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  <div className="p-2 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+                    <Package className="h-4 w-4 text-[#d06a98] dark:text-[#f29fc8]" />
                   </div>
                   <div>
                     <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white">Productos Más Rentables</h3>
@@ -2400,8 +2400,8 @@ export default function DashboardPage() {
                       >
                         <defs>
                           <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#059669" stopOpacity={0.9}/>
-                            <stop offset="95%" stopColor="#047857" stopOpacity={0.7}/>
+                            <stop offset="5%" stopColor="#d06a98" stopOpacity={0.9}/>
+                            <stop offset="95%" stopColor="#c55a88" stopOpacity={0.7}/>
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -2444,7 +2444,7 @@ export default function DashboardPage() {
                           dataKey="profit" 
                           fill="url(#colorProfit)" 
                           radius={[4, 4, 0, 0]}
-                          stroke="#047857"
+                          stroke="#c55a88"
                           strokeWidth={1}
                         />
                       </BarChart>
@@ -2464,8 +2464,8 @@ export default function DashboardPage() {
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                    <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <div className="p-2 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+                    <CreditCard className="h-4 w-4 text-[#d06a98] dark:text-[#f29fc8]" />
                   </div>
                   <div>
                     <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white">Ingresos por Método de Pago</h3>
@@ -2511,7 +2511,7 @@ export default function DashboardPage() {
                   })
                   
                   const paymentData = [
-                    { name: 'Efectivo', value: efectivoTotal, color: '#10B981' },
+                    { name: 'Efectivo', value: efectivoTotal, color: '#f29fc8' },
                     { name: 'Transferencia', value: transferenciaTotal, color: '#3B82F6' },
                     { name: 'Mixto', value: mixtoTotal, color: '#F59E0B' }
                   ].filter(item => item.value > 0)
@@ -2524,8 +2524,8 @@ export default function DashboardPage() {
                       >
                         <defs>
                           <linearGradient id="colorEfectivo" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.9}/>
-                            <stop offset="95%" stopColor="#059669" stopOpacity={0.7}/>
+                            <stop offset="5%" stopColor="#f29fc8" stopOpacity={0.9}/>
+                            <stop offset="95%" stopColor="#d06a98" stopOpacity={0.7}/>
                           </linearGradient>
                           <linearGradient id="colorTransferencia" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.9}/>

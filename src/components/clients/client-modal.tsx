@@ -27,11 +27,13 @@ export function ClientModal({ isOpen, onClose, onSave, client }: ClientModalProp
     name: client?.name || '',
     email: client?.email || '',
     phone: client?.phone || '',
+    whatsapp: client?.whatsapp || '',
     document: client?.document || '',
     address: client?.address || '',
+    referencePoint: client?.referencePoint || '',
     city: client?.city || '',
     state: client?.state || '',
-    type: client?.type || 'consumidor_final',
+    type: 'cliente' as const,
     status: client?.status || 'active'
   })
 
@@ -44,11 +46,13 @@ export function ClientModal({ isOpen, onClose, onSave, client }: ClientModalProp
         name: client.name || '',
         email: client.email || '',
         phone: client.phone || '',
+        whatsapp: client.whatsapp || '',
         document: client.document || '',
         address: client.address || '',
+        referencePoint: client.referencePoint || '',
         city: client.city || '',
         state: client.state || '',
-        type: client.type || 'consumidor_final',
+        type: 'cliente',
         status: client.status || 'active'
       })
     } else {
@@ -56,11 +60,13 @@ export function ClientModal({ isOpen, onClose, onSave, client }: ClientModalProp
         name: '',
         email: '',
         phone: '',
+        whatsapp: '',
         document: '',
         address: '',
+        referencePoint: '',
         city: '',
         state: '',
-        type: 'consumidor_final',
+        type: 'cliente',
         status: 'active'
       })
     }
@@ -138,15 +144,18 @@ export function ClientModal({ isOpen, onClose, onSave, client }: ClientModalProp
       const clientData: Omit<Client, 'id'> = {
         name: formData.name.trim(),
         email: processedEmail,
-        phone: formData.phone.trim(),
+        phone: formData.whatsapp.trim(), // WhatsApp es el teléfono principal
+        whatsapp: formData.whatsapp.trim(),
         document: formData.document.trim(),
         address: formData.address.trim(),
+        referencePoint: formData.referencePoint.trim(),
         city: formData.city.trim(),
         state: formData.state.trim(),
-        type: formData.type,
+        type: 'cliente',
         status: formData.status,
         creditLimit: 0, // Se maneja en el módulo de pagos
         currentDebt: 0, // Se maneja en el módulo de pagos
+        points: 0, // Se calcula automáticamente
         createdAt: new Date().toISOString()
       }
 
@@ -160,11 +169,13 @@ export function ClientModal({ isOpen, onClose, onSave, client }: ClientModalProp
       name: '',
       email: '',
       phone: '',
+      whatsapp: '',
       document: '',
       address: '',
+      referencePoint: '',
       city: '',
       state: '',
-      type: 'consumidor_final',
+      type: 'cliente',
       status: 'active'
     })
     setErrors({})
@@ -300,20 +311,15 @@ export function ClientModal({ isOpen, onClose, onSave, client }: ClientModalProp
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Teléfono
+                    WhatsApp
                   </label>
                   <input
                     type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#fce4f0]0 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 ${
-                      errors.phone ? 'border-[#f29fc8]' : 'border-gray-600'
-                    }`}
-                    placeholder="+52 55 1234 5678"
+                    value={formData.whatsapp}
+                    onChange={(e) => handleInputChange('whatsapp', e.target.value)}
+                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#fce4f0]0 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
+                    placeholder="+57 300 123 4567"
                   />
-                  {errors.phone && (
-                    <p className="mt-1 text-sm text-[#f29fc8]">{errors.phone}</p>
-                  )}
                 </div>
 
                 <div>
@@ -364,6 +370,19 @@ export function ClientModal({ isOpen, onClose, onSave, client }: ClientModalProp
                   {errors.address && (
                     <p className="mt-1 text-sm text-[#f29fc8]">{errors.address}</p>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Punto de Referencia <span className="text-gray-500 text-xs">(para domicilios)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.referencePoint}
+                    onChange={(e) => handleInputChange('referencePoint', e.target.value)}
+                    className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#fce4f0]0 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
+                    placeholder="Ej: Casa esquinera blanca, frente al parque"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
