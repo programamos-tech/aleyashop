@@ -84,14 +84,15 @@ export class CompanyService {
   // Inicializar configuración por defecto de Aleya Shop
   static async initializeDefaultConfig(): Promise<CompanyConfig | null> {
     const defaultConfig = {
-      name: 'Aleya Shop',
-      nit: '',
-      address: 'Sincelejo, Sucre',
-      phone: '',
+      name: 'Aleya Shop SAS',
+      nit: '901522077',
+      address: 'Calle 28 N25B - 365 interior 01203 barrio Boston',
+      phone: '320 5848594',
       email: 'info@aleyashop.com',
-      logo: '/favicon.png',
+      logo: '/logo.jpeg',
       dianResolution: undefined,
-      numberingRange: undefined
+      numberingRange: undefined,
+      isIvaResponsible: true
     }
 
     try {

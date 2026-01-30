@@ -298,10 +298,10 @@ export default function TransfersPage() {
     try {
       toast.loading('Generando PDF...')
       await PDFService.generateTransferPDF(transfer, {
-        logoUrl: '/favicon.png',
-        companyName: transfer.fromStoreName || 'Aleya Shop',
-        companyAddress: '',
-        companyPhone: ''
+        logoUrl: '/logo.jpeg',
+        companyName: transfer.fromStoreName || 'Aleya Shop SAS',
+        companyAddress: 'Calle 28 N25B - 365 interior 01203 barrio Boston',
+        companyPhone: '320 5848594'
       })
       toast.dismiss()
       toast.success('PDF generado exitosamente')

@@ -144,11 +144,12 @@ export default function SalesPage() {
       if (!currentStore) {
         currentStore = {
           id: MAIN_STORE_ID,
-          name: 'Aleya Shop',
-          nit: '',
-          logo: '/favicon.png',
-          address: 'Sincelejo, Sucre, Colombia.',
-          city: 'Sincelejo',
+          name: 'Aleya Shop SAS',
+          nit: '901522077',
+          logo: '/logo.jpeg',
+          address: 'Calle 28 N25B - 365 interior 01203 barrio Boston',
+          city: '',
+          phone: '320 5848594',
           isActive: true,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
@@ -416,11 +417,13 @@ export default function SalesPage() {
           <div class="ticket">
             <!-- Header -->
             <div class="header">
-              <img src="${currentStore.logo || '/favicon.png'}" class="logo" alt="${currentStore.name}" />
-              <div class="company-name">${currentStore.name}</div>
+              <img src="${currentStore.logo || '/logo.jpeg'}" class="logo" alt="${currentStore.name}" />
+              <div class="company-name">${currentStore.name || 'Aleya Shop SAS'}</div>
               <div class="company-info">
-                ${currentStore.nit ? `<strong>NIT ${currentStore.nit}</strong><br>` : ''}
-                ${currentStore.address ? `<strong>${currentStore.address}${currentStore.city ? `, ${currentStore.city}` : ''}</strong><br>` : ''}
+                ${currentStore.nit ? `<strong>NIT ${currentStore.nit}</strong><br>` : '<strong>NIT 901522077</strong><br>'}
+                <strong>Responsable de IVA</strong><br>
+                ${currentStore.address ? `<strong>${currentStore.address}${currentStore.city ? `, ${currentStore.city}` : ''}</strong><br>` : '<strong>Calle 28 N25B - 365 interior 01203 barrio Boston</strong><br>'}
+                <strong>Tel: ${currentStore.phone || '320 5848594'}</strong>
               </div>
             </div>
 
