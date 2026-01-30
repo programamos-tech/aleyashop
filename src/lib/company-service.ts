@@ -26,6 +26,7 @@ export class CompanyService {
         logo: data.logo,
         dianResolution: data.dian_resolution,
         numberingRange: data.numbering_range,
+        isIvaResponsible: data.is_iva_responsible ?? true,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       }

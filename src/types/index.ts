@@ -157,6 +157,7 @@ export interface CompanyConfig {
   logo?: string
   dianResolution?: string
   numberingRange?: string
+  isIvaResponsible?: boolean
   createdAt: string
   updatedAt: string
 }

@@ -329,7 +329,7 @@ export default function ClientDetailPage() {
                     data={[...stats.purchaseHistory]
                       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
                       .map((sale, index) => ({
-                        name: `#${sale.invoiceNumber}`,
+                        name: sale.invoiceNumber,
                         total: sale.total,
                         date: new Date(sale.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
                       }))
@@ -384,35 +384,48 @@ export default function ClientDetailPage() {
                 <User className="h-4 w-4 text-[#f29fc8]" />
                 Contacto
               </h3>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-3 gap-3 text-sm">
+                {/* Fila 1 */}
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-700 dark:text-gray-300 truncate">{client.email || '-'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MessageCircle className="h-4 w-4 text-green-500" />
-                  <span className="text-gray-700 dark:text-gray-300">{client.whatsapp || client.phone || '-'}</span>
+                  {(client.whatsapp || client.phone) ? (
+                    <a 
+                      href={`https://wa.me/${(client.whatsapp || client.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${client.name}, te escribimos de Milagros Guacarí...`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-green-600 dark:text-green-400 hover:underline"
+                    >
+                      {client.whatsapp || client.phone}
+                    </a>
+                  ) : (
+                    <span className="text-gray-700 dark:text-gray-300">-</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-700 dark:text-gray-300">{client.document || '-'}</span>
                 </div>
+                {/* Fila 2 */}
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-700 dark:text-gray-300">{formatDate(client.createdAt)}</span>
                 </div>
-                <div className="col-span-2 flex items-start gap-2">
+                <div className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {client.address || 'Sin dirección'}{client.city ? `, ${client.city}` : ''}
+                  <span className="text-gray-700 dark:text-gray-300 truncate">
+                    {client.address || 'Sin dirección'}
                   </span>
                 </div>
-                {client.referencePoint && (
-                  <div className="col-span-2 flex items-start gap-2">
-                    <Navigation className="h-4 w-4 text-[#f29fc8] mt-0.5" />
-                    <span className="text-gray-700 dark:text-gray-300 text-xs">{client.referencePoint}</span>
-                  </div>
-                )}
+                <div className="flex items-start gap-2">
+                  <Navigation className="h-4 w-4 text-gray-400 mt-0.5" />
+                  <span className="text-gray-700 dark:text-gray-300 truncate">
+                    {client.referencePoint || '-'}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -461,7 +474,7 @@ export default function ClientDetailPage() {
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">#{sale.invoiceNumber}</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{sale.invoiceNumber}</span>
                         {sale.isDelivery ? (
                           <Bike className="h-3.5 w-3.5 text-[#f29fc8]" />
                         ) : (

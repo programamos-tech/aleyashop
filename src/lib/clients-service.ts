@@ -40,6 +40,7 @@ export class ClientsService {
         phone: client.phone,
         document: client.document,
         address: client.address,
+        referencePoint: client.reference_point || '',
         city: client.city,
         state: client.state,
         type: client.type,
@@ -83,6 +84,7 @@ export class ClientsService {
         phone: data.phone,
         document: data.document,
         address: data.address,
+        referencePoint: data.reference_point || '',
         city: data.city,
         state: data.state,
         type: data.type,
@@ -117,6 +119,7 @@ export class ClientsService {
           phone: clientData.phone,
           document: clientData.document,
           address: clientData.address,
+          reference_point: clientData.referencePoint || '',
           city: clientData.city,
           state: clientData.state,
           type: clientData.type,
@@ -149,6 +152,7 @@ export class ClientsService {
         phone: data.phone,
         document: data.document,
         address: data.address,
+        referencePoint: data.reference_point || '',
         city: data.city,
         state: data.state,
         type: data.type,
@@ -212,7 +216,8 @@ export class ClientsService {
       }
       if (updates.phone) updateData.phone = updates.phone
       if (updates.document) updateData.document = updates.document
-      if (updates.address) updateData.address = updates.address
+      if (updates.address !== undefined) updateData.address = updates.address
+      if (updates.referencePoint !== undefined) updateData.reference_point = updates.referencePoint
       if (updates.city) updateData.city = updates.city
       if (updates.state) updateData.state = updates.state
       if (updates.type) updateData.type = updates.type
@@ -359,6 +364,7 @@ export class ClientsService {
         phone: client.phone,
         document: client.document,
         address: client.address,
+        referencePoint: client.reference_point || '',
         city: client.city,
         state: client.state,
         type: client.type,

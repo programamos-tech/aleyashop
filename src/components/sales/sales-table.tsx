@@ -27,12 +27,16 @@ import {
   X,
   Truck,
   Bike,
-  Store
+  Store,
+  Copy,
+  Check
 } from 'lucide-react'
 import { Sale, Credit, StoreStockTransfer } from '@/types'
 import { usePermissions } from '@/hooks/usePermissions'
 import { CreditsService } from '@/lib/credits-service'
 import { StoreStockTransferService } from '@/lib/store-stock-transfer-service'
+import { ClientsService } from '@/lib/clients-service'
+import { Client } from '@/types'
 
 interface SalesTableProps {
   sales: Sale[]
@@ -83,6 +87,9 @@ export function SalesTable({
   const [cancelSuccessMessage, setCancelSuccessMessage] = useState<Record<string, string>>({})
   const [credits, setCredits] = useState<Record<string, Credit>>({})
   const [transfers, setTransfers] = useState<Record<string, StoreStockTransfer>>({})
+  const [deliveryClients, setDeliveryClients] = useState<Record<string, Client>>({})
+  const [copiedDelivery, setCopiedDelivery] = useState<string | null>(null)
+  const [clientDeliveryCount, setClientDeliveryCount] = useState<Record<string, number>>({})
 
   // Cargar créditos para ventas de tipo crédito
   useEffect(() => {
@@ -148,6 +155,67 @@ export function SalesTable({
       loadTransfers()
     }
   }, [sales])
+
+  // Cargar datos de clientes para ventas a domicilio y contar domicilios
+  useEffect(() => {
+    const loadDeliveryClients = async () => {
+      const deliverySales = sales.filter(sale => sale.isDelivery && sale.clientId)
+      const clientsToLoad: Record<string, Client> = {}
+      
+      // Contar domicilios por cliente
+      const deliveryCountByClient: Record<string, number> = {}
+      deliverySales.forEach(sale => {
+        if (sale.clientId) {
+          deliveryCountByClient[sale.clientId] = (deliveryCountByClient[sale.clientId] || 0) + 1
+        }
+      })
+      setClientDeliveryCount(deliveryCountByClient)
+      
+      await Promise.all(
+        deliverySales.map(async (sale) => {
+          if (!deliveryClients[sale.id] && sale.clientId) {
+            try {
+              const client = await ClientsService.getClientById(sale.clientId)
+              if (client) {
+                clientsToLoad[sale.id] = client
+              }
+            } catch (error) {
+              // Error silencioso
+            }
+          }
+        })
+      )
+      
+      if (Object.keys(clientsToLoad).length > 0) {
+        setDeliveryClients(prev => ({ ...prev, ...clientsToLoad }))
+      }
+    }
+    
+    if (sales.length > 0) {
+      loadDeliveryClients()
+    }
+  }, [sales])
+
+  // Función para copiar información del domicilio
+  const handleCopyDelivery = (sale: Sale) => {
+    const client = deliveryClients[sale.id]
+    if (!client) return
+    
+    const count = clientDeliveryCount[sale.clientId] || 0
+    let historialMsg = ''
+    if (count <= 1) {
+      historialMsg = `\n\n⚠️ *ATENCIÓN:* 1er pedido - Confirma la recepción de la transferencia antes de enviar`
+    } else if (count <= 5) {
+      historialMsg = `\n\n📊 *Historial:* ${count} pedidos anteriores`
+    } else {
+      historialMsg = `\n\n✅ *Cliente seguro:* ${count} pedidos anteriores`
+    }
+    
+    const deliveryInfo = `📍 *Información del Domicilio*\n\n👤 *Cliente:* ${client.name}\n📞 *Teléfono:* ${client.phone || 'N/A'}\n🏠 *Dirección:* ${client.address || 'N/A'}\n📌 *Referencia:* ${client.referencePoint || 'N/A'}${historialMsg}`
+    navigator.clipboard.writeText(deliveryInfo)
+    setCopiedDelivery(sale.id)
+    setTimeout(() => setCopiedDelivery(null), 2000)
+  }
 
   // Función helper para generar ID del crédito
   const getCreditId = (credit: Credit): string => {
@@ -739,6 +807,105 @@ export function SalesTable({
                             </div>
                           </div>
 
+                          {/* Sección Domicilio - Mobile */}
+                          {sale.isDelivery && deliveryClients[sale.id] && (
+                            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                              <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                  <Bike className="h-4 w-4 text-[#f29fc8]" />
+                                  Domicilio
+                                </h3>
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleCopyDelivery(sale)
+                                  }}
+                                  className={`${copiedDelivery === sale.id ? 'bg-green-500 hover:bg-green-600' : 'bg-[#f29fc8] hover:bg-[#e07ab0]'} text-white transition-all`}
+                                  size="sm"
+                                >
+                                  {copiedDelivery === sale.id ? (
+                                    <Check className="h-4 w-4" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                              <div className="bg-[#fce4f0]/30 dark:bg-[#f29fc8]/10 rounded-lg p-3 border border-[#f29fc8]/30">
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                  <div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                      <User className="h-3 w-3" /> Cliente
+                                    </div>
+                                    <div className="font-semibold text-gray-900 dark:text-white truncate">
+                                      {deliveryClients[sale.id].name}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                      <Receipt className="h-3 w-3" /> Teléfono
+                                    </div>
+                                    <div className="font-semibold text-gray-900 dark:text-white">
+                                      {deliveryClients[sale.id].phone || '-'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                      <Store className="h-3 w-3" /> Dirección
+                                    </div>
+                                    <div className="font-semibold text-gray-900 dark:text-white">
+                                      {deliveryClients[sale.id].address || '-'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                      <FileText className="h-3 w-3" /> Referencia
+                                    </div>
+                                    <div className="font-semibold text-gray-900 dark:text-white">
+                                      {deliveryClients[sale.id].referencePoint || '-'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                      <Bike className="h-3 w-3" /> Valor
+                                    </div>
+                                    <div className="font-bold text-[#d06a98] dark:text-[#f29fc8]">
+                                      {sale.deliveryFee ? formatCurrency(sale.deliveryFee) : '$0'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                      <Truck className="h-3 w-3" /> Historial
+                                    </div>
+                                    {(() => {
+                                      const count = clientDeliveryCount[sale.clientId] || 0
+                                      if (count <= 1) {
+                                        return (
+                                          <div className="font-bold text-[#c45a7a] dark:text-[#e07ab0] flex items-center gap-1">
+                                            <AlertTriangle className="h-3 w-3" />
+                                            1er pedido
+                                          </div>
+                                        )
+                                      } else if (count <= 5) {
+                                        return (
+                                          <div className="font-bold text-[#e07ab0] dark:text-[#f29fc8]">
+                                            {count} pedidos
+                                          </div>
+                                        )
+                                      } else {
+                                        return (
+                                          <div className="font-bold text-[#f29fc8] dark:text-[#f29fc8] flex items-center gap-1">
+                                            <Check className="h-3 w-3" />
+                                            {count} pedidos
+                                          </div>
+                                        )
+                                      }
+                                    })()}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Información de anulación - Mobile */}
                           {sale.status === 'cancelled' && (
                             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 space-y-2">
@@ -1214,6 +1381,126 @@ export function SalesTable({
                                 </div>
                               </div>
                             </div>
+
+                            {/* Sección Domicilio - Desktop */}
+                            {sale.isDelivery && deliveryClients[sale.id] && (
+                              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <Bike className="h-4 w-4 text-[#f29fc8]" />
+                                    Domicilio
+                                  </h3>
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleCopyDelivery(sale)
+                                    }}
+                                    className={`${copiedDelivery === sale.id ? 'bg-green-500 hover:bg-green-600' : 'bg-[#f29fc8] hover:bg-[#e07ab0]'} text-white transition-all`}
+                                    size="sm"
+                                  >
+                                    {copiedDelivery === sale.id ? (
+                                      <Check className="h-4 w-4" />
+                                    ) : (
+                                      <Copy className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                                <div className="bg-[#fce4f0]/30 dark:bg-[#f29fc8]/10 rounded-lg p-4 border border-[#f29fc8]/30">
+                                  <div className="grid grid-cols-6 gap-4">
+                                    <div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                                        <User className="h-3 w-3" />
+                                        Cliente
+                                      </div>
+                                      <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                        {deliveryClients[sale.id].name}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                                        <Receipt className="h-3 w-3" />
+                                        Teléfono
+                                      </div>
+                                      <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                        {deliveryClients[sale.id].phone || '-'}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                                        <Store className="h-3 w-3" />
+                                        Dirección
+                                      </div>
+                                      <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                        {deliveryClients[sale.id].address || '-'}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                                        <FileText className="h-3 w-3" />
+                                        Referencia
+                                      </div>
+                                      <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                        {deliveryClients[sale.id].referencePoint || '-'}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                                        <Bike className="h-3 w-3" />
+                                        Valor
+                                      </div>
+                                      <div className="text-sm font-bold text-[#d06a98] dark:text-[#f29fc8]">
+                                        {sale.deliveryFee ? formatCurrency(sale.deliveryFee) : '$0'}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                                        <Truck className="h-3 w-3" />
+                                        Historial
+                                      </div>
+                                      {(() => {
+                                        const count = clientDeliveryCount[sale.clientId] || 0
+                                        if (count <= 1) {
+                                          return (
+                                            <div className="group relative inline-block">
+                                              <div className="text-sm font-bold text-[#c45a7a] dark:text-[#e07ab0] flex items-center gap-1 cursor-help">
+                                                <AlertTriangle className="h-3.5 w-3.5" />
+                                                1er pedido
+                                              </div>
+                                              <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-[#d06a98] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-lg">
+                                                Confirma la recepción de la transferencia
+                                              </div>
+                                            </div>
+                                          )
+                                        } else if (count <= 5) {
+                                          return (
+                                            <div className="group relative inline-block">
+                                              <div className="text-sm font-bold text-[#e07ab0] dark:text-[#f29fc8] cursor-help">
+                                                {count} pedidos
+                                              </div>
+                                              <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-[#e07ab0] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-lg">
+                                                Cliente con pocos pedidos
+                                              </div>
+                                            </div>
+                                          )
+                                        } else {
+                                          return (
+                                            <div className="group relative inline-block">
+                                              <div className="text-sm font-bold text-[#f29fc8] dark:text-[#f29fc8] flex items-center gap-1 cursor-help">
+                                                <Check className="h-3.5 w-3.5" />
+                                                {count} pedidos
+                                              </div>
+                                              <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-[#f29fc8] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-lg">
+                                                Cliente seguro
+                                              </div>
+                                            </div>
+                                          )
+                                        }
+                                      })()}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
 
                             {/* Información de anulación - Desktop */}
                             {sale.status === 'cancelled' && (

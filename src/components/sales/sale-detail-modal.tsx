@@ -16,12 +16,16 @@ import {
   Eye,
   Edit,
   Truck,
-  Bike
+  Bike,
+  Copy,
+  MapPin,
+  Check
 } from 'lucide-react'
 import { Sale, CompanyConfig, Client, Credit, StoreStockTransfer } from '@/types'
 import { CompanyService } from '@/lib/company-service'
 import { CreditsService } from '@/lib/credits-service'
 import { StoreStockTransferService } from '@/lib/store-stock-transfer-service'
+import { ClientsService } from '@/lib/clients-service'
 import { InvoiceTemplate } from './invoice-template'
 import { StoresService } from '@/lib/stores-service'
 import { getCurrentUserStoreId } from '@/lib/store-helper'
@@ -56,6 +60,27 @@ export default function SaleDetailModal({
   const cancelFormRef = useRef<HTMLDivElement>(null)
   const [credit, setCredit] = useState<Credit | null>(null)
   const [transfer, setTransfer] = useState<StoreStockTransfer | null>(null)
+  const [deliveryCopied, setDeliveryCopied] = useState(false)
+
+  // Cargar datos del cliente si es un domicilio
+  useEffect(() => {
+    const loadClientData = async () => {
+      if (sale && sale.isDelivery && sale.clientId) {
+        try {
+          const client = await ClientsService.getClientById(sale.clientId)
+          setClientData(client)
+        } catch (error) {
+          setClientData(null)
+        }
+      } else {
+        setClientData(null)
+      }
+    }
+    
+    if (isOpen && sale) {
+      loadClientData()
+    }
+  }, [isOpen, sale])
 
   // Cargar crédito si la venta es de tipo crédito
   useEffect(() => {
@@ -337,14 +362,15 @@ export default function SaleDetailModal({
     // Usar valores por defecto si no hay configuración de empresa o tienda
     const defaultCompanyConfig = {
       id: 'default',
-      name: currentStore?.name || 'Aleya Shop',
-      nit: currentStore?.nit || '1035770226-9',
-      address: currentStore?.address ? `${currentStore.address}${currentStore.city ? `, ${currentStore.city}` : ''}` : 'Carrera 20 #22-02, Sincelejo, Sucre',
-      phone: '3135206736',
+      name: currentStore?.name || 'Aleya Shop SAS',
+      nit: currentStore?.nit || '901522077',
+      address: currentStore?.address ? `${currentStore.address}${currentStore.city ? `, ${currentStore.city}` : ''}` : 'Calle 28 N25B - 365 interior 01203 barrio Boston',
+      phone: '320 5848594',
       email: 'info@aleyashop.com',
-      logo: currentStore?.logo || '/favicon.png',
+      logo: currentStore?.logo || '/logo.jpeg',
       dianResolution: undefined,
       numberingRange: undefined,
+      isIvaResponsible: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -503,6 +529,7 @@ export default function SaleDetailModal({
                 ${config.logo ? `<img src="${config.logo}" alt="${config.name}" style="max-width: 100px; max-height: 100px; margin-bottom: 10px;" />` : ''}
                 <h1>${config.name}</h1>
                 ${config.nit ? `<p><strong>NIT:</strong> ${config.nit}</p>` : ''}
+                ${config.isIvaResponsible !== false ? `<p><strong>Responsable de IVA</strong></p>` : ''}
                 ${config.address ? `<p><strong>Dirección:</strong> ${config.address}</p>` : ''}
                 ${config.phone ? `<p><strong>Teléfono:</strong> ${config.phone}</p>` : ''}
                 ${config.email ? `<p><strong>Email:</strong> ${config.email}</p>` : ''}
@@ -830,6 +857,34 @@ export default function SaleDetailModal({
                           )}
                         </div>
                       </div>
+                    </div>
+                  )}
+                  
+                  {/* Botón para copiar dirección del domicilio */}
+                  {sale.isDelivery && clientData && (
+                    <div className="col-span-2 mt-2">
+                      <Button
+                        onClick={() => {
+                          const deliveryInfo = `📍 *DOMICILIO*\n\n👤 *Cliente:* ${clientData.name}\n📞 *Teléfono:* ${clientData.phone || 'N/A'}\n🏠 *Dirección:* ${clientData.address || 'N/A'}\n📌 *Referencia:* ${clientData.referencePoint || 'N/A'}`
+                          navigator.clipboard.writeText(deliveryInfo)
+                          setDeliveryCopied(true)
+                          setTimeout(() => setDeliveryCopied(false), 2000)
+                        }}
+                        className="w-full bg-[#fce4f0] hover:bg-[#f29fc8] text-[#d06a98] hover:text-white border border-[#f29fc8] transition-all"
+                        size="sm"
+                      >
+                        {deliveryCopied ? (
+                          <>
+                            <Check className="h-4 w-4 mr-2" />
+                            ¡Copiado!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copiar dirección para domiciliario
+                          </>
+                        )}
+                      </Button>
                     </div>
                   )}
                 </div>
