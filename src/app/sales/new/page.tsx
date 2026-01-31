@@ -51,7 +51,7 @@ export default function NewSalePage() {
   const [debouncedProductSearch, setDebouncedProductSearch] = useState('')
   const [showClientDropdown, setShowClientDropdown] = useState(false)
   const [showProductDropdown, setShowProductDropdown] = useState(false)
-  const [includeTax, setIncludeTax] = useState(false)
+  // IVA ya incluido en los precios de productos - no se necesita checkbox
   const [invoiceNumber, setInvoiceNumber] = useState<string>('Pendiente')
   const [stockAlert, setStockAlert] = useState<{show: boolean, message: string, productId?: string}>({show: false, message: ''})
   const [highlightedProductIndex, setHighlightedProductIndex] = useState<number>(-1)
@@ -528,6 +528,7 @@ export default function NewSalePage() {
     )
   }, [selectedProducts])
 
+  // Subtotal = suma de precios (ya incluyen IVA)
   const subtotal = useMemo(() => {
     const calculated = validProductsForTotal.reduce((sum, item) => {
       const itemTotal = (item.unitPrice || 0) * (item.quantity || 0)
@@ -536,13 +537,19 @@ export default function NewSalePage() {
     return calculated
   }, [validProductsForTotal])
 
-  const tax = useMemo(() => {
-    return includeTax ? subtotal * 0.19 : 0
-  }, [subtotal, includeTax])
+  // Desglose del IVA incluido en los productos
+  const subtotalSinIva = useMemo(() => {
+    return Math.round(subtotal / 1.19)
+  }, [subtotal])
 
+  const ivaIncluido = useMemo(() => {
+    return subtotal - subtotalSinIva
+  }, [subtotal, subtotalSinIva])
+
+  // Total = productos (con IVA) + domicilio (sin IVA adicional)
   const total = useMemo(() => {
-    return subtotal + tax + (isDelivery ? deliveryFee : 0)
-  }, [subtotal, tax, isDelivery, deliveryFee])
+    return subtotal + (isDelivery ? deliveryFee : 0)
+  }, [subtotal, isDelivery, deliveryFee])
 
   const getTotalMixedPayments = () => {
     return mixedPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0)
@@ -703,7 +710,7 @@ export default function NewSalePage() {
       clientName: selectedClient.name,
       total: total,
       subtotal: subtotal,
-      tax: tax,
+      tax: ivaIncluido,
       discount: 0,
       discountType: 'amount',
       status: 'completed',
@@ -828,37 +835,41 @@ export default function NewSalePage() {
                                     }}
                                     onClick={() => hasStock ? handleAddProduct(product) : undefined}
                                     onMouseEnter={() => setHighlightedProductIndex(index)}
-                                    className={`p-3 border-b border-gray-200 dark:border-gray-600 last:border-b-0 rounded-lg transition-colors duration-150 ease-in-out cursor-pointer ${
+                                    className={`p-3 border-b border-gray-200 dark:border-gray-600 last:border-b-0 rounded-lg transition-colors duration-150 ease-in-out ${
                                       isHighlighted
-                                        ? 'bg-[#fce4f0] dark:bg-[#f29fc8]/20 border-[#f29fc8] dark:border-[#f29fc8]'
+                                        ? 'bg-[#fce4f0] dark:bg-[#f29fc8]/20 border-[#f29fc8] dark:border-[#f29fc8] cursor-pointer'
                                         : hasStock
-                                          ? 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
-                                          : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 opacity-60 cursor-not-allowed'
+                                          ? 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer'
+                                          : 'bg-gray-50 dark:bg-gray-800/50 opacity-50 cursor-not-allowed'
                                     }`}
                                   >
-                                    <div className={`font-medium ${
-                                      isHighlighted
-                                        ? 'text-[#e07ab0] dark:text-[#f29fc8]/50'
-                                        : hasStock
-                                          ? 'text-gray-900 dark:text-white'
-                                          : 'text-red-600 dark:text-red-400'
-                                    }`}>
-                                      {product.name}
+                                    <div className="flex items-center gap-2">
+                                      <span className={`font-medium ${
+                                        isHighlighted
+                                          ? 'text-[#e07ab0] dark:text-[#f29fc8]/50'
+                                          : hasStock
+                                            ? 'text-gray-900 dark:text-white'
+                                            : 'text-gray-400 dark:text-gray-500'
+                                      }`}>
+                                        {product.name}
+                                      </span>
+                                      {!hasStock && (
+                                        <span className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 rounded">
+                                          Agotado
+                                        </span>
+                                      )}
                                     </div>
                                     <div className={`text-sm ${
                                       isHighlighted
                                         ? 'text-[#f29fc8] dark:text-[#f29fc8]'
-                                        : 'text-gray-600 dark:text-gray-300'
+                                        : hasStock
+                                          ? 'text-gray-600 dark:text-gray-300'
+                                          : 'text-gray-400 dark:text-gray-500'
                                     }`}>
                                       Ref: {product.reference || 'N/A'} | 
                                       Stock: {totalStock} | 
                                       Precio: ${(product.price || 0).toLocaleString('es-CO')}
                                     </div>
-                                    {!hasStock && (
-                                      <div className="mt-2 px-2 py-1 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 text-xs font-medium rounded">
-                                        Sin Stock
-                                      </div>
-                                    )}
                                   </div>
                                 )
                               })}
@@ -1318,30 +1329,23 @@ export default function NewSalePage() {
                       </div>
 
                       <div className="space-y-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        {/* Desglose de productos */}
+                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <span>Subtotal (sin IVA):</span>
+                          <span>{formatCurrency(subtotalSinIva)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <span>IVA (19%):</span>
+                          <span>{formatCurrency(ivaIncluido)}</span>
+                        </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600 dark:text-gray-400">Subtotal:</span>
                           <span className="font-semibold">{formatCurrency(subtotal)}</span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">IVA (19%):</span>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={includeTax}
-                              onChange={(e) => setIncludeTax(e.target.checked)}
-                              className="h-3.5 w-3.5"
-                            />
-                            <span className="text-xs">Incluir</span>
-                          </div>
-                        </div>
-                        {includeTax && (
-                          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                            <span>IVA calculado:</span>
-                            <span>{formatCurrency(tax)}</span>
-                          </div>
-                        )}
+                        
+                        {/* Domicilio (no lleva IVA) */}
                         {isDelivery && deliveryFee > 0 && (
-                          <div className="flex justify-between text-xs text-[#d06a98] dark:text-[#f29fc8]">
+                          <div className="flex justify-between text-sm text-[#d06a98] dark:text-[#f29fc8]">
                             <span className="flex items-center gap-1">
                               <Bike className="h-3.5 w-3.5" />
                               Domicilio:
@@ -1349,6 +1353,8 @@ export default function NewSalePage() {
                             <span>{formatCurrency(deliveryFee)}</span>
                           </div>
                         )}
+                        
+                        {/* Total */}
                         <div className="flex justify-between text-base font-bold pt-2 border-t border-gray-200 dark:border-gray-700">
                           <span>Total:</span>
                           <span className="text-[#f29fc8] dark:text-[#f29fc8]">{formatCurrency(total)}</span>

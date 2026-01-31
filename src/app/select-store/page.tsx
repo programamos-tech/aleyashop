@@ -100,7 +100,7 @@ export default function SelectStorePage() {
             <img 
               src="/logo.jpeg" 
               alt="Aleya Shop Logo"
-              className="w-20 h-20 rounded-xl object-cover shadow-lg"
+              className="w-20 h-20 rounded-full object-cover shadow-lg"
             />
           </div>
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">

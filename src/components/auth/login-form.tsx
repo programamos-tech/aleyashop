@@ -54,7 +54,7 @@ export function LoginForm() {
             <img 
               src="/logo.jpeg" 
               alt="Aleya Shop Logo"
-              className="w-20 h-20 rounded-xl shadow-lg object-cover"
+              className="w-20 h-20 rounded-full shadow-lg object-cover"
             />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">

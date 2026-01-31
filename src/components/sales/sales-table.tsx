@@ -772,23 +772,26 @@ export function SalesTable({
                           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
                             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                               <Receipt className="h-4 w-4 text-[#f29fc8]" />
-                              Resumen
+                              Resumen Financiero
                             </h3>
                             <div className="space-y-2 text-sm">
+                              {/* Desglose IVA */}
+                              <div className="flex justify-between">
+                                <span className="text-gray-500 dark:text-gray-400">Sin IVA:</span>
+                                <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(Math.round(sale.subtotal / 1.19))}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-500 dark:text-gray-400">IVA (19%):</span>
+                                <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(sale.subtotal - Math.round(sale.subtotal / 1.19))}</span>
+                              </div>
                               <div className="flex justify-between">
                                 <span className="text-gray-500 dark:text-gray-400">Subtotal:</span>
-                                <span className="font-semibold">{formatCurrency(sale.subtotal)}</span>
+                                <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(sale.subtotal)}</span>
                               </div>
                               {sale.discount > 0 && (
                                 <div className="flex justify-between">
                                   <span className="text-gray-500 dark:text-gray-400">Descuento:</span>
                                   <span className="font-semibold text-red-600 dark:text-red-400">-{formatCurrency(sale.discount)}</span>
-                                </div>
-                              )}
-                              {sale.tax > 0 && (
-                                <div className="flex justify-between">
-                                  <span className="text-gray-500 dark:text-gray-400">Impuesto:</span>
-                                  <span className="font-semibold">{formatCurrency(sale.tax)}</span>
                                 </div>
                               )}
                               {sale.isDelivery && sale.deliveryFee && sale.deliveryFee > 0 && (
@@ -1339,7 +1342,20 @@ export function SalesTable({
                                 <Receipt className="h-4 w-4 text-[#f29fc8]" />
                                 Resumen Financiero
                               </h3>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+                                {/* Desglose IVA */}
+                                <div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Sin IVA</div>
+                                  <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                    {formatCurrency(Math.round(sale.subtotal / 1.19))}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">IVA (19%)</div>
+                                  <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                    {formatCurrency(sale.subtotal - Math.round(sale.subtotal / 1.19))}
+                                  </div>
+                                </div>
                                 <div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Subtotal</div>
                                   <div className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -1351,14 +1367,6 @@ export function SalesTable({
                                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Descuento</div>
                                     <div className="text-sm font-semibold text-red-600 dark:text-red-400">
                                       -{formatCurrency(sale.discount)}
-                                    </div>
-                                  </div>
-                                )}
-                                {sale.tax > 0 && (
-                                  <div>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Impuesto</div>
-                                    <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                                      {formatCurrency(sale.tax)}
                                     </div>
                                   </div>
                                 )}
@@ -1375,7 +1383,7 @@ export function SalesTable({
                                 )}
                                 <div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total</div>
-                                  <div className="text-base font-bold text-[#f29fc8] dark:text-[#f29fc8]">
+                                  <div className="text-sm font-bold text-[#f29fc8] dark:text-[#f29fc8]">
                                     {formatCurrency(sale.total)}
                                   </div>
                                 </div>

@@ -737,8 +737,20 @@ export default function DashboardPage() {
       .filter(p => p.paymentMethod === 'transfer')
       .reduce((sum, payment) => sum + payment.amount, 0)
 
-    // Ingresos totales (solo efectivo + transferencia - dinero que realmente ha ingresado)
-    const totalRevenue = cashRevenue + transferRevenue
+    // Calcular domicilios (dinero que NO es ingreso, va para el domiciliario)
+    const totalDeliveryFees = activeSales.reduce((sum, sale) => {
+      return sum + (sale.isDelivery && sale.deliveryFee ? sale.deliveryFee : 0)
+    }, 0)
+    
+    // Ingresos totales = efectivo + transferencia - domicilios (el domicilio NO es ingreso)
+    const totalRevenue = (cashRevenue + transferRevenue) - totalDeliveryFees
+    
+    // El total de productos vendidos (con IVA) es el ingreso real
+    const productsSubtotal = totalRevenue
+    
+    // IVA recaudado (solo sobre productos)
+    const productsSinIva = Math.round(productsSubtotal / 1.19)
+    const ivaRecaudado = productsSubtotal - productsSinIva
 
     // Calcular el saldo pendiente de créditos (no el total de ventas a crédito)
     // Solo contar créditos que están pendientes o parciales (no completados)
@@ -947,7 +959,8 @@ export default function DashboardPage() {
     // Clientes únicos que han comprado en el período seleccionado - Excluir ventas canceladas
     const uniqueClients = new Set(activeSales.map(sale => sale.clientId)).size
 
-    // Calcular ganancia bruta (ventas - costo de productos vendidos)
+    // Calcular ganancia bruta (ventas SIN IVA - costo SIN IVA)
+    // El IVA no es ganancia, es dinero recaudado para el gobierno
     // Excluir ventas canceladas del cálculo de ganancia bruta
     // Para ventas a crédito: solo contar la ganancia cuando el crédito esté completado
     const grossProfit = activeSales.reduce((totalProfit, sale) => {
@@ -968,20 +981,24 @@ export default function DashboardPage() {
       const saleProfit = sale.items.reduce((itemProfit, item) => {
         // Buscar el producto para obtener su costo
         const product = allProducts.find(p => p.id === item.productId)
-        const cost = product?.cost || 0
+        // Usar costo SIN IVA (costBeforeTax o calcular)
+        const costSinIva = product?.costBeforeTax || Math.round((product?.cost || 0) / 1.19)
         
-        // Calcular el precio real de venta después de descuentos
+        // Calcular el precio real de venta después de descuentos (con IVA)
         const baseTotal = item.quantity * item.unitPrice
         const discountAmount = item.discountType === 'percentage' 
           ? (baseTotal * (item.discount || 0)) / 100 
           : (item.discount || 0)
         const salePriceAfterDiscount = Math.max(0, baseTotal - discountAmount)
         
-        // El precio unitario real después de descuentos
-        const realUnitPrice = item.quantity > 0 ? salePriceAfterDiscount / item.quantity : 0
+        // Convertir precio de venta a SIN IVA
+        const salePriceSinIva = Math.round(salePriceAfterDiscount / 1.19)
         
-        // Ganancia bruta = (precio de venta real - costo) * cantidad
-        const itemGrossProfit = (realUnitPrice - cost) * item.quantity
+        // El precio unitario real SIN IVA después de descuentos
+        const realUnitPriceSinIva = item.quantity > 0 ? salePriceSinIva / item.quantity : 0
+        
+        // Ganancia bruta = (precio de venta SIN IVA - costo SIN IVA) * cantidad
+        const itemGrossProfit = (realUnitPriceSinIva - costSinIva) * item.quantity
         
         return itemProfit + itemGrossProfit
       }, 0)
@@ -989,7 +1006,7 @@ export default function DashboardPage() {
       return totalProfit + saleProfit
     }, 0)
 
-    // Calcular las ventas más rentables para mostrar en la lista
+    // Calcular las ventas más rentables para mostrar en la lista (SIN IVA)
     // Excluir ventas canceladas
     // Para ventas a crédito: solo contar la ganancia cuando el crédito esté completado
     const topProfitableSales = activeSales.map(sale => {
@@ -1009,20 +1026,22 @@ export default function DashboardPage() {
       
       const saleProfit = sale.items.reduce((itemProfit, item) => {
         const product = allProducts.find(p => p.id === item.productId)
-        const cost = product?.cost || 0
+        // Usar costo SIN IVA
+        const costSinIva = product?.costBeforeTax || Math.round((product?.cost || 0) / 1.19)
         
-        // Calcular el precio real de venta después de descuentos
+        // Calcular el precio real de venta después de descuentos (con IVA)
         const baseTotal = item.quantity * item.unitPrice
         const discountAmount = item.discountType === 'percentage' 
           ? (baseTotal * (item.discount || 0)) / 100 
           : (item.discount || 0)
         const salePriceAfterDiscount = Math.max(0, baseTotal - discountAmount)
         
-        // El precio unitario real después de descuentos
-        const realUnitPrice = item.quantity > 0 ? salePriceAfterDiscount / item.quantity : 0
+        // Convertir a SIN IVA
+        const salePriceSinIva = Math.round(salePriceAfterDiscount / 1.19)
+        const realUnitPriceSinIva = item.quantity > 0 ? salePriceSinIva / item.quantity : 0
         
-        // Ganancia bruta = (precio de venta real - costo) * cantidad
-        const itemGrossProfit = (realUnitPrice - cost) * item.quantity
+        // Ganancia bruta = (precio SIN IVA - costo SIN IVA) * cantidad
+        const itemGrossProfit = (realUnitPriceSinIva - costSinIva) * item.quantity
         
         return itemProfit + itemGrossProfit
       }, 0)
@@ -1152,31 +1171,35 @@ export default function DashboardPage() {
       })
     }
 
-    // IMPORTANTE: Calcular salesByDay usando EXACTAMENTE la misma lógica que cashRevenue + transferRevenue
-    // Primero, calcular ventas por día (igual que arriba)
+    // IMPORTANTE: Calcular salesByDay - Ventas de productos SIN domicilios (igual que totalRevenue)
     const salesByDay = activeSales.reduce((acc: { [key: string]: { amount: number, count: number } }, sale) => {
       const date = getDateKey(sale.createdAt)
       if (!acc[date]) {
         acc[date] = { amount: 0, count: 0 }
       }
       
-      // Usar EXACTAMENTE la misma lógica que cashRevenue y transferRevenue arriba (líneas 425-440)
+      // Restar domicilios del total (el domicilio no es ingreso, es para el delivery)
+      const deliveryFee = sale.isDelivery && sale.deliveryFee ? sale.deliveryFee : 0
+      const saleAmount = sale.total - deliveryFee
+      
       if (sale.paymentMethod === 'cash') {
-        acc[date].amount += sale.total
+        acc[date].amount += saleAmount
         acc[date].count += 1
       } else if (sale.paymentMethod === 'transfer') {
-        acc[date].amount += sale.total
+        acc[date].amount += saleAmount
         acc[date].count += 1
       } else if (sale.paymentMethod === 'mixed' && sale.payments) {
-        // Para pagos mixtos, desglosar igual que arriba (líneas 430-438)
+        // Para pagos mixtos, sumar pagos menos proporción de domicilio
+        const totalPayments = sale.payments.reduce((sum, p) => sum + (p.amount || 0), 0)
+        const deliveryProportion = totalPayments > 0 ? deliveryFee / totalPayments : 0
+        
         sale.payments.forEach(payment => {
-          if (payment.paymentType === 'cash') {
-            acc[date].amount += payment.amount || 0
-          } else if (payment.paymentType === 'transfer') {
-            acc[date].amount += payment.amount || 0
+          if (payment.paymentType === 'cash' || payment.paymentType === 'transfer') {
+            // Restar proporción del domicilio de cada pago
+            const paymentWithoutDelivery = (payment.amount || 0) * (1 - deliveryProportion)
+            acc[date].amount += paymentWithoutDelivery
           }
         })
-        // Solo incrementar count si hay al menos un pago en efectivo/transferencia
         const hasRealPayment = sale.payments.some(p => 
           p.paymentType === 'cash' || p.paymentType === 'transfer'
         )
@@ -1184,7 +1207,6 @@ export default function DashboardPage() {
           acc[date].count += 1
         }
       }
-      // No contar ventas a crédito (paymentMethod === 'credit') en el gráfico
       
       return acc
     }, {})
@@ -1236,29 +1258,13 @@ export default function DashboardPage() {
       })
     }
 
-    // Debug: Verificar que los totales coincidan
+    // Debug: Verificar que los totales coincidan (tolerancia de 100 por redondeos)
     const totalFromChart = Object.values(salesByDay).reduce((sum, day) => sum + day.amount, 0)
-    if (Math.abs(totalFromChart - totalRevenue) > 1) {
-      console.error('❌ [DASHBOARD] Discrepancia entre gráfico y totalRevenue:', {
+    if (Math.abs(totalFromChart - totalRevenue) > 100) {
+      console.warn('[DASHBOARD] Diferencia entre gráfico y totalRevenue:', {
         totalFromChart,
         totalRevenue,
-        difference: totalFromChart - totalRevenue,
-        salesByDayKeys: Object.keys(salesByDay),
-        validPaymentRecordsCount: validPaymentRecords.length,
-        validPaymentRecordsTotal: validPaymentRecords.reduce((sum, p) => sum + p.amount, 0),
-        cashRevenue,
-        transferRevenue,
-        activeSalesCount: activeSales.length,
-        salesByDayDetails: Object.entries(salesByDay).map(([date, data]) => ({
-          date,
-          amount: data.amount,
-          count: data.count
-        }))
-      })
-    } else {
-      console.log('✅ [DASHBOARD] Gráfico y totalRevenue coinciden:', {
-        totalFromChart,
-        totalRevenue
+        difference: totalFromChart - totalRevenue
       })
     }
 
@@ -1345,6 +1351,11 @@ export default function DashboardPage() {
       transferRevenue,
       creditRevenue,
       knownPaymentMethodsTotal,
+      // Desglose IVA (solo sobre productos, sin domicilios)
+      totalDeliveryFees,
+      productsSubtotal,
+      productsSinIva,
+      ivaRecaudado,
       totalSales: activeSales.length, // Solo contar ventas activas (no canceladas ni borradores)
       topProducts,
       completedWarranties,
@@ -1681,9 +1692,20 @@ export default function DashboardPage() {
           <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1">
             {formatCurrency(metrics.totalRevenue)}
           </p>
-          <p className="text-xs text-gray-600 dark:text-gray-400">
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
             {metrics.totalSales} ventas realizadas
           </p>
+          {/* Desglose IVA */}
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-1">
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span>Base (sin IVA):</span>
+              <span>{formatCurrency(metrics.productsSinIva)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span>IVA recaudado:</span>
+              <span>{formatCurrency(metrics.ivaRecaudado)}</span>
+            </div>
+          </div>
         </div>
 
         {/* Efectivo */}
@@ -1797,8 +1819,8 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* Segunda fila de métricas - 4 cards abajo */}
-      <div className={`grid grid-cols-1 md:grid-cols-2 ${user && user.role !== 'vendedor' && user.role !== 'Vendedor' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 md:gap-6 mb-6 md:mb-10 items-stretch`}>
+      {/* Segunda fila de métricas - 3 cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-10 items-stretch">
         {/* Dinero Afuera - Para usuarios con permisos de créditos, pero NO para Super Admin */}
         {canViewCredits && !isSuperAdmin && (
           <div
@@ -1874,13 +1896,20 @@ export default function DashboardPage() {
             <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1">
               {formatCurrency(metrics.grossProfit)}
             </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              Beneficio por ventas realizadas
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+              Beneficio real (sin IVA)
             </p>
+            {/* Desglose */}
+            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-1">
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>IVA recaudado (DIAN):</span>
+                <span>{formatCurrency(metrics.ivaRecaudado)}</span>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Productos en Stock - Solo para Super Admin */}
+        {/* Inversión en Stock - Solo para Super Admin */}
         {isSuperAdmin && (
           <div 
             onClick={() => router.push('/inventory/products')}
@@ -1891,100 +1920,18 @@ export default function DashboardPage() {
                 <Package className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
               </div>
               <div className="text-right">
-                <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Productos en Stock</span>
-                <p className="text-[10px] md:text-xs text-gray-400 dark:text-gray-500 mt-0.5">Stock Total</p>
+                <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Inversión en Stock</span>
               </div>
             </div>
             <p className="text-xl md:text-2xl font-bold text-[#d06a98] dark:text-[#f29fc8] mb-1">
               {formatCurrency(metrics.totalStockInvestment > 0 ? metrics.totalStockInvestment : metrics.potentialInvestment)}
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              {metrics.totalStockInvestment > 0 ? 'Inversión Total en Stock' : 'Inversión Potencial (Costo Total)'}
+              Dinero invertido en productos (costo con IVA)
             </p>
           </div>
         )}
 
-        {/* Créditos o Facturas Anuladas - Depende del rol */}
-        {isSuperAdmin ? (
-          // Créditos para Super Admin
-          <div 
-            role="button"
-            tabIndex={0}
-            onClick={goToCredits}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                goToCredits()
-              }
-            }}
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col h-full"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
-                <CreditCard className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
-              </div>
-              <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Créditos</span>
-            </div>
-            <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1">
-              {metrics.pendingCreditsCount || 0}
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-              créditos pendientes/parciales
-            </p>
-            <p className="text-lg font-bold text-[#d06a98] dark:text-[#f29fc8]">
-              {formatCurrency(metrics.totalDebt || 0)}
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              Total a hoy
-            </p>
-          </div>
-        ) : (
-          // Facturas Anuladas para otros usuarios
-          <div 
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
-            onClick={() => setShowCancelledModal(true)}
-          >
-            <div className="flex items-center justify-between mb-2 md:mb-4">
-              <div className="p-1.5 md:p-2 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
-                <XCircle className="h-4 w-4 md:h-5 md:w-5 text-[#d06a98] dark:text-[#f29fc8]" />
-              </div>
-              <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Facturas Anuladas</span>
-            </div>
-            <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mb-0.5 md:mb-1">
-              {metrics.cancelledSales}
-            </p>
-            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-2 md:mb-3">
-              de {metrics.totalSales} ventas totales
-            </p>
-            
-            {/* Resumen adicional */}
-            <div className="pt-2 md:pt-3 border-t border-gray-200 dark:border-gray-600 space-y-1.5 md:space-y-2 mt-auto">
-              <div className="flex items-center justify-between text-xs md:text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Tasa:</span>
-                <span className="font-semibold text-[#d06a98] dark:text-[#f29fc8]">
-                  {metrics.totalSales > 0 ? ((metrics.cancelledSales / metrics.totalSales) * 100).toFixed(1) : 0}%
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs md:text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Valor perdido:</span>
-                <span className="font-semibold text-[#d06a98] dark:text-[#f29fc8]">
-                  {formatCurrency(metrics.lostValue)}
-                </span>
-              </div>
-              <div className="text-center pt-1 md:pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCancelledModal(true)}
-                  className="text-[10px] md:text-xs text-[#d06a98] dark:text-[#f29fc8] font-medium flex items-center justify-center gap-1 hover:underline focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
-                >
-                  <BarChart3 className="h-2.5 w-2.5 md:h-3 md:w-3" />
-                  <span className="hidden sm:inline">Haz clic para ver análisis detallado</span>
-                  <span className="sm:hidden">Ver detalles</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Gráficos y estadísticas mejoradas */}
@@ -2364,19 +2311,23 @@ export default function DashboardPage() {
                       sale.items.forEach((item) => {
                         const productName = item.productName || 'Producto desconocido'
                         const product = productsMap.get(item.productId)
-                        const cost = product?.cost || 0
+                        // Usar costo SIN IVA
+                        const costSinIva = product?.costBeforeTax || Math.round((product?.cost || 0) / 1.19)
                         const unitPrice = item.unitPrice || 0
                         const quantity = item.quantity || 0
                         
-                        // Calcular precio real después de descuentos (igual que en el cálculo de grossProfit)
+                        // Calcular precio real después de descuentos (con IVA)
                         const baseTotal = quantity * unitPrice
                         const discountAmount = item.discountType === 'percentage' 
                           ? (baseTotal * (item.discount || 0)) / 100 
                           : (item.discount || 0)
                         const salePriceAfterDiscount = Math.max(0, baseTotal - discountAmount)
-                        const realUnitPrice = quantity > 0 ? salePriceAfterDiscount / quantity : 0
+                        // Convertir a SIN IVA
+                        const salePriceSinIva = Math.round(salePriceAfterDiscount / 1.19)
+                        const realUnitPriceSinIva = quantity > 0 ? salePriceSinIva / quantity : 0
                         
-                        const profit = (realUnitPrice - cost) * quantity
+                        // Ganancia = (precio SIN IVA - costo SIN IVA) * cantidad
+                        const profit = (realUnitPriceSinIva - costSinIva) * quantity
                         
                         if (!productProfits[productName]) {
                           productProfits[productName] = { name: productName, profit: 0, sales: 0 }

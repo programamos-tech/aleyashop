@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { X, ArrowRightLeft, ShoppingCart, Package, Users, Tag, UserCheck, FileText, DollarSign, CreditCard, Receipt, TrendingUp, TrendingDown, User, Shield, CheckCircle, AlertCircle, Plus, Edit, Trash2, RefreshCw } from 'lucide-react'
+import { X, ArrowRightLeft, ShoppingCart, Package, Users, Tag, UserCheck, FileText, DollarSign, CreditCard, Receipt, TrendingUp, TrendingDown, User, Shield, CheckCircle, AlertCircle, Plus, Edit, Trash2, RefreshCw, Bike, Store, Wallet, Calculator } from 'lucide-react'
 import { LogEntry } from '@/types/logs'
 import { LogsService } from '@/lib/logs-service'
 import { SalesService } from '@/lib/sales-service'
@@ -538,222 +538,205 @@ export function LogDetailModal({ isOpen, onClose, log }: LogDetailModalProps) {
                 <div className="p-3 md:p-4 max-h-[60vh] md:max-h-96 xl:max-h-none xl:overflow-visible overflow-y-auto">
                   {/* Información específica para ventas */}
                   {log.action === 'sale_create' && log.details && (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 font-medium text-gray-600 mb-3">
-                        <ShoppingCart className="h-4 w-4" />
-                        <span>Detalles de la Venta</span>
+                    <div className="space-y-3">
+                      {/* Header con tipo de venta y total */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {(log.details.isDelivery || (log.details.deliveryFee && log.details.deliveryFee > 0)) ? (
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                              <Bike className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                              <span className="text-xs font-medium text-orange-700 dark:text-orange-300">Domicilio</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                              <Store className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              <span className="text-xs font-medium text-green-700 dark:text-green-300">Tienda</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-[#d06a98] dark:text-[#f29fc8]">
+                            ${(log.details.total || 0).toLocaleString('es-CO')}
+                          </div>
+                        </div>
                       </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+
+                      {/* Info compacta */}
+                      <div className="grid grid-cols-3 gap-2 text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
                         <div>
-                          <span className="text-gray-600 dark:text-gray-300 text-xs">Cliente:</span>
-                          <div className="text-gray-900 dark:text-white font-medium">{log.details.clientName || 'N/A'}</div>
+                          <User className="h-3.5 w-3.5 mx-auto text-gray-400 mb-0.5" />
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400">Cliente</div>
+                          <div className="text-xs font-medium text-gray-900 dark:text-white truncate">{log.details.clientName || 'N/A'}</div>
                         </div>
                         <div>
-                          <span className="text-gray-600 dark:text-gray-300 text-xs">Total:</span>
-                          <div className="text-gray-900 dark:text-white font-bold text-lg">${(log.details.total || 0).toLocaleString('es-CO')}</div>
-                        </div>
-                        <div>
-                          <span className="text-gray-600 dark:text-gray-300 text-xs">Método de Pago:</span>
-                          <div className="text-gray-900 dark:text-white">
+                          <Wallet className="h-3.5 w-3.5 mx-auto text-gray-400 mb-0.5" />
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400">Pago</div>
+                          <div className="text-xs font-medium text-gray-900 dark:text-white">
                             {log.details.paymentMethod === 'cash' ? 'Efectivo' :
-                             log.details.paymentMethod === 'transfer' ? 'Transferencia' :
+                             log.details.paymentMethod === 'transfer' ? 'Transfer.' :
                              log.details.paymentMethod === 'mixed' ? 'Mixto' :
-                             log.details.paymentMethod === 'credit' ? 'Crédito' :
-                             log.details.paymentMethod || 'N/A'}
+                             log.details.paymentMethod === 'credit' ? 'Crédito' : 'N/A'}
                           </div>
                         </div>
                         <div>
-                          <span className="text-gray-600 dark:text-gray-300 text-xs">Items Vendidos:</span>
-                          <div className="text-gray-900 dark:text-white font-medium">{log.details.itemsCount || 0} productos</div>
+                          <Package className="h-3.5 w-3.5 mx-auto text-gray-400 mb-0.5" />
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400">Items</div>
+                          <div className="text-xs font-medium text-gray-900 dark:text-white">{log.details.itemsCount || 0}</div>
                         </div>
                       </div>
                       
-                      {/* Lista de productos vendidos */}
+                      {/* Resumen financiero compacto */}
+                      <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-500 dark:text-gray-400">Sin IVA:</span>
+                          <span className="text-gray-700 dark:text-gray-300">${(log.details.subtotal ? Math.round(log.details.subtotal / 1.19) : 0).toLocaleString('es-CO')}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-500 dark:text-gray-400">IVA (19%):</span>
+                          <span className="text-gray-700 dark:text-gray-300">${(log.details.tax || (log.details.subtotal ? log.details.subtotal - Math.round(log.details.subtotal / 1.19) : 0)).toLocaleString('es-CO')}</span>
+                        </div>
+                        <div className="flex justify-between text-xs border-t border-gray-200 dark:border-gray-600 pt-1">
+                          <span className="text-gray-600 dark:text-gray-300">Subtotal:</span>
+                          <span className="font-medium text-gray-900 dark:text-white">${(log.details.subtotal || 0).toLocaleString('es-CO')}</span>
+                        </div>
+                        {(log.details.isDelivery || (log.details.deliveryFee && log.details.deliveryFee > 0)) && (
+                          <div className="flex justify-between text-xs">
+                            <span className="text-orange-500 dark:text-orange-400 flex items-center gap-1">
+                              <Bike className="h-3 w-3" /> Domicilio:
+                            </span>
+                            <span className="text-orange-600 dark:text-orange-300">${(log.details.deliveryFee || 0).toLocaleString('es-CO')}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm font-bold border-t border-gray-200 dark:border-gray-600 pt-1">
+                          <span className="text-[#d06a98] dark:text-[#f29fc8]">Total:</span>
+                          <span className="text-[#d06a98] dark:text-[#f29fc8]">${(log.details.total || 0).toLocaleString('es-CO')}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Productos - colapsable y compacto */}
                       {log.details.items && log.details.items.length > 0 && (
-                        <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
-                          <span className="text-gray-600 dark:text-gray-300 text-xs block mb-3">Productos Vendidos:</span>
-                          <div className="space-y-3">
+                        <div>
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-1.5 flex items-center gap-1">
+                            <Package className="h-3 w-3" /> Productos ({log.details.items.length})
+                          </div>
+                          <div className="space-y-1.5 max-h-40 overflow-y-auto">
                             {log.details.items.map((item: any, index: number) => (
-                              <div key={index} className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg space-y-2">
-                                <div className="flex justify-between items-start">
-                                  <div className="flex-1">
-                                    <div className="font-medium text-gray-900 dark:text-white">{item.productName}</div>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">Ref: {item.productReference}</div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                      {item.quantity} × ${(item.unitPrice || 0).toLocaleString('es-CO')}
-                                    </div>
-                                    <div className="text-sm font-bold text-gray-900 dark:text-white">
-                                      ${(item.totalPrice || 0).toLocaleString('es-CO')}
-                                    </div>
-                                  </div>
+                              <div key={index} className="flex justify-between items-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded p-1.5">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs font-medium text-gray-900 dark:text-white truncate">{item.productName}</div>
+                                  <div className="text-[10px] text-gray-400">Ref: {item.productReference}</div>
                                 </div>
-                                
-                                {/* Información de descuento de stock */}
-                                {item.stockInfo && (
-                                  <div className="border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
-                                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Descuento de Stock:</div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                      {item.stockInfo.storeDeduction > 0 && (
-                                        <div className="bg-[#fce4f0] dark:bg-[#f29fc8]/10 p-2 rounded">
-                                          <div className="text-[10px] text-[#f29fc8] dark:text-[#f29fc8]">Local</div>
-                                          <div className="text-xs font-semibold text-gray-900 dark:text-white">
-                                            -{item.stockInfo.storeDeduction} unidades
-                                          </div>
-                                          <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                                            {item.stockInfo.previousStoreStock} → {item.stockInfo.newStoreStock}
-                                          </div>
-                                        </div>
-                                      )}
-                                      {item.stockInfo.warehouseDeduction > 0 && (
-                                        <div className="bg-orange-50 dark:bg-orange-900/10 p-2 rounded">
-                                          <div className="text-[10px] text-orange-600 dark:text-orange-400">Bodega</div>
-                                          <div className="text-xs font-semibold text-gray-900 dark:text-white">
-                                            -{item.stockInfo.warehouseDeduction} unidades
-                                          </div>
-                                          <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                                            {item.stockInfo.previousWarehouseStock} → {item.stockInfo.newWarehouseStock}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
+                                <div className="text-right ml-2">
+                                  <div className="text-[10px] text-gray-500">{item.quantity} × ${(item.unitPrice || 0).toLocaleString('es-CO')}</div>
+                                  <div className="text-xs font-semibold text-gray-900 dark:text-white">${(item.totalPrice || 0).toLocaleString('es-CO')}</div>
+                                </div>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
-                      
-                      <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
-                        <span className="text-gray-600 dark:text-gray-300 text-xs block mb-2">Descripción:</span>
-                        <div className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                          {log.details.description || 'Nueva venta creada'}
-                        </div>
-                      </div>
                     </div>
                   )}
 
                   {log.action === 'credit_sale_create' && log.details && (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 font-medium text-gray-600 mb-3">
-                        <ShoppingCart className="h-4 w-4" />
-                        <span>Detalles de la Venta a Crédito</span>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                        <div>
-                          <span className="text-gray-600 dark:text-gray-300 text-xs">Cliente:</span>
-                          <div className="text-gray-900 dark:text-white font-medium">{log.details.clientName || 'N/A'}</div>
-                        </div>
-                        <div>
-                          <span className="text-gray-600 dark:text-gray-300 text-xs">Total:</span>
-                          <div className="text-gray-900 dark:text-white font-bold text-lg">${(log.details.total || 0).toLocaleString('es-CO')}</div>
-                        </div>
-                        <div>
-                          <span className="text-gray-600 dark:text-gray-300 text-xs">Método de Pago:</span>
-                          <div className="text-gray-900 dark:text-white">
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-[#fce4f0] text-[#d06a98] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8]">
-                              Crédito
-                            </span>
+                    <div className="space-y-3">
+                      {/* Header con tipo de venta, badge crédito y total */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {(log.details.isDelivery || (log.details.deliveryFee && log.details.deliveryFee > 0)) ? (
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                              <Bike className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                              <span className="text-xs font-medium text-orange-700 dark:text-orange-300">Domi</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                              <Store className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              <span className="text-xs font-medium text-green-700 dark:text-green-300">Tienda</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1 px-2 py-1 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+                            <CreditCard className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
+                            <span className="text-xs font-medium text-[#d06a98] dark:text-[#f29fc8]">Crédito</span>
                           </div>
                         </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-[#d06a98] dark:text-[#f29fc8]">
+                            ${(log.details.total || 0).toLocaleString('es-CO')}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Info compacta */}
+                      <div className="grid grid-cols-3 gap-2 text-center bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2">
                         <div>
-                          <span className="text-gray-600 dark:text-gray-300 text-xs">Items Vendidos:</span>
-                          <div className="text-gray-900 dark:text-white font-medium">{log.details.itemsCount || 0} productos</div>
+                          <User className="h-3.5 w-3.5 mx-auto text-gray-400 mb-0.5" />
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400">Cliente</div>
+                          <div className="text-xs font-medium text-gray-900 dark:text-white truncate">{log.details.clientName || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <Package className="h-3.5 w-3.5 mx-auto text-gray-400 mb-0.5" />
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400">Items</div>
+                          <div className="text-xs font-medium text-gray-900 dark:text-white">{log.details.itemsCount || 0}</div>
+                        </div>
+                        <div>
+                          <Receipt className="h-3.5 w-3.5 mx-auto text-gray-400 mb-0.5" />
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400">Vence</div>
+                          <div className="text-xs font-medium text-gray-900 dark:text-white">
+                            {log.details.dueDate ? new Date(log.details.dueDate).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }) : 'N/A'}
+                          </div>
                         </div>
                       </div>
                       
-                      {/* Fecha de Vencimiento - siempre visible */}
-                      <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
-                        <span className="text-gray-600 dark:text-gray-300 text-xs block mb-2">Fecha de Vencimiento:</span>
-                        <div className="text-gray-900 dark:text-white font-medium">
-                          {log.details.dueDate 
-                            ? (() => {
-                                try {
-                                  const date = new Date(log.details.dueDate)
-                                  if (isNaN(date.getTime())) {
-                                    return log.details.dueDate || 'Sin fecha de vencimiento'
-                                  }
-                                  return date.toLocaleDateString('es-CO', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                  })
-                                } catch (error) {
-                                  return log.details.dueDate || 'Sin fecha de vencimiento'
-                                }
-                              })()
-                            : 'Sin fecha de vencimiento'}
+                      {/* Resumen financiero compacto */}
+                      <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-500 dark:text-gray-400">Sin IVA:</span>
+                          <span className="text-gray-700 dark:text-gray-300">${(log.details.subtotal ? Math.round(log.details.subtotal / 1.19) : 0).toLocaleString('es-CO')}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-500 dark:text-gray-400">IVA (19%):</span>
+                          <span className="text-gray-700 dark:text-gray-300">${(log.details.tax || (log.details.subtotal ? log.details.subtotal - Math.round(log.details.subtotal / 1.19) : 0)).toLocaleString('es-CO')}</span>
+                        </div>
+                        <div className="flex justify-between text-xs border-t border-gray-200 dark:border-gray-600 pt-1">
+                          <span className="text-gray-600 dark:text-gray-300">Subtotal:</span>
+                          <span className="font-medium text-gray-900 dark:text-white">${(log.details.subtotal || 0).toLocaleString('es-CO')}</span>
+                        </div>
+                        {(log.details.isDelivery || (log.details.deliveryFee && log.details.deliveryFee > 0)) && (
+                          <div className="flex justify-between text-xs">
+                            <span className="text-orange-500 dark:text-orange-400 flex items-center gap-1">
+                              <Bike className="h-3 w-3" /> Domicilio:
+                            </span>
+                            <span className="text-orange-600 dark:text-orange-300">${(log.details.deliveryFee || 0).toLocaleString('es-CO')}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm font-bold border-t border-gray-200 dark:border-gray-600 pt-1">
+                          <span className="text-[#d06a98] dark:text-[#f29fc8]">Total:</span>
+                          <span className="text-[#d06a98] dark:text-[#f29fc8]">${(log.details.total || 0).toLocaleString('es-CO')}</span>
                         </div>
                       </div>
                       
-                      {/* Lista de productos vendidos */}
+                      {/* Productos - colapsable y compacto */}
                       {log.details.items && log.details.items.length > 0 && (
-                        <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
-                          <span className="text-gray-600 dark:text-gray-300 text-xs block mb-3">Productos Vendidos:</span>
-                          <div className="space-y-3">
+                        <div>
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-1.5 flex items-center gap-1">
+                            <Package className="h-3 w-3" /> Productos ({log.details.items.length})
+                          </div>
+                          <div className="space-y-1.5 max-h-40 overflow-y-auto">
                             {log.details.items.map((item: any, index: number) => (
-                              <div key={index} className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg space-y-2">
-                                <div className="flex justify-between items-start">
-                                  <div className="flex-1">
-                                    <div className="font-medium text-gray-900 dark:text-white">{item.productName}</div>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">Ref: {item.productReference}</div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                      {item.quantity} × ${(item.unitPrice || 0).toLocaleString('es-CO')}
-                                    </div>
-                                    <div className="text-sm font-bold text-gray-900 dark:text-white">
-                                      ${(item.totalPrice || 0).toLocaleString('es-CO')}
-                                    </div>
-                                  </div>
+                              <div key={index} className="flex justify-between items-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded p-1.5">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs font-medium text-gray-900 dark:text-white truncate">{item.productName}</div>
+                                  <div className="text-[10px] text-gray-400">Ref: {item.productReference}</div>
                                 </div>
-                                
-                                {/* Información de descuento de stock */}
-                                {item.stockInfo && (
-                                  <div className="border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
-                                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Descuento de Stock:</div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                      {item.stockInfo.storeDeduction > 0 && (
-                                        <div className="bg-[#fce4f0] dark:bg-[#f29fc8]/10 p-2 rounded">
-                                          <div className="text-[10px] text-[#f29fc8] dark:text-[#f29fc8]">Local</div>
-                                          <div className="text-xs font-semibold text-gray-900 dark:text-white">
-                                            -{item.stockInfo.storeDeduction} unidades
-                                          </div>
-                                          <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                                            {item.stockInfo.previousStoreStock} → {item.stockInfo.newStoreStock}
-                                          </div>
-                                        </div>
-                                      )}
-                                      {item.stockInfo.warehouseDeduction > 0 && (
-                                        <div className="bg-orange-50 dark:bg-orange-900/10 p-2 rounded">
-                                          <div className="text-[10px] text-orange-600 dark:text-orange-400">Bodega</div>
-                                          <div className="text-xs font-semibold text-gray-900 dark:text-white">
-                                            -{item.stockInfo.warehouseDeduction} unidades
-                                          </div>
-                                          <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                                            {item.stockInfo.previousWarehouseStock} → {item.stockInfo.newWarehouseStock}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
+                                <div className="text-right ml-2">
+                                  <div className="text-[10px] text-gray-500">{item.quantity} × ${(item.unitPrice || 0).toLocaleString('es-CO')}</div>
+                                  <div className="text-xs font-semibold text-gray-900 dark:text-white">${(item.totalPrice || 0).toLocaleString('es-CO')}</div>
+                                </div>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
-                      
-                      <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
-                        <span className="text-gray-600 dark:text-gray-300 text-xs block mb-2">Descripción:</span>
-                        <div className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                          {log.details.description || 'Nueva venta a crédito creada'}
-                        </div>
-                      </div>
                     </div>
                   )}
 

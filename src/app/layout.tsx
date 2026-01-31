@@ -22,9 +22,9 @@ export const metadata: Metadata = {
   title: "Aleya Shop - Panel de Control",
   description: "Sistema de gestión de inventario y ventas para Aleya Shop",
   icons: {
-    icon: '/favicon.png',
-    shortcut: '/favicon.png',
-    apple: '/favicon.png'
+    icon: '/favicon-round.png',
+    shortcut: '/favicon-round.png',
+    apple: '/favicon-round.png'
   },
 };
 

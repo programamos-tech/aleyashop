@@ -820,7 +820,12 @@ export class SalesService {
           saleId: sale.id,
           invoiceNumber: invoiceNumber,
           clientName: saleData.clientName,
+          // Información financiera con IVA
+          subtotal: saleData.subtotal,
+          tax: saleData.tax,
           total: saleData.total,
+          isDelivery: saleData.isDelivery,
+          deliveryFee: saleData.deliveryFee || 0,
           paymentMethod: saleData.paymentMethod,
           status: saleData.status,
           itemsCount: itemsWithStockInfo.length,

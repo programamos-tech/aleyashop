@@ -526,7 +526,7 @@ export default function SaleDetailModal({
             <!-- Header -->
             <div class="header">
               <div class="company-info">
-                ${config.logo ? `<img src="${config.logo}" alt="${config.name}" style="max-width: 100px; max-height: 100px; margin-bottom: 10px;" />` : ''}
+                ${config.logo ? `<img src="${config.logo}" alt="${config.name}" style="max-width: 80px; max-height: 80px; margin-bottom: 10px; border-radius: 50%; object-fit: cover;" />` : ''}
                 <h1>${config.name}</h1>
                 ${config.nit ? `<p><strong>NIT:</strong> ${config.nit}</p>` : ''}
                 ${config.isIvaResponsible !== false ? `<p><strong>Responsable de IVA</strong></p>` : ''}
@@ -540,7 +540,7 @@ export default function SaleDetailModal({
                 <h2>FACTURA DE VENTA</h2>
                 <p><strong>No. Factura:</strong> ${sale.invoiceNumber}</p>
                 <p><strong>Fecha:</strong> ${new Date(sale.createdAt).toLocaleDateString('es-CO')}</p>
-                <p><strong>Hora:</strong> ${new Date(sale.createdAt).toLocaleTimeString('es-CO')}</p>
+                <p><strong>Hora:</strong> ${new Date(sale.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' })}</p>
               </div>
             </div>
 

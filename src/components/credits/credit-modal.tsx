@@ -615,12 +615,12 @@ export function CreditModal({ isOpen, onClose, onCreateCredit }: CreditModalProp
                             'border-b border-gray-200 dark:border-gray-600 last:border-b-0',
                             'rounded-lg',
                             'transition-colors duration-150 ease-in-out',
-                            hasStock ? 'cursor-pointer' : 'cursor-not-allowed opacity-60',
+                            hasStock ? 'cursor-pointer' : 'cursor-not-allowed opacity-50',
                             isHighlighted
                               ? 'bg-orange-500/15 dark:bg-orange-500/25 border-orange-300 dark:border-orange-500'
                               : hasStock
                                 ? 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
-                                : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                                : 'bg-gray-50 dark:bg-gray-800/50'
                           ].join(' ')
 
                           const nameClasses = [
@@ -629,7 +629,7 @@ export function CreditModal({ isOpen, onClose, onCreateCredit }: CreditModalProp
                               ? 'text-orange-700 dark:text-orange-200'
                               : hasStock
                                 ? 'text-gray-900 dark:text-white'
-                                : 'text-red-600 dark:text-red-400'
+                                : 'text-gray-400 dark:text-gray-500'
                           ].join(' ')
 
                           const detailsClasses = [
@@ -649,19 +649,21 @@ export function CreditModal({ isOpen, onClose, onCreateCredit }: CreditModalProp
                           onMouseEnter={() => setHighlightedProductIndex(index)}
                           className={containerClasses}
                         >
-                          <div className={nameClasses}>
-                            {product.name}
+                          <div className="flex items-center gap-2">
+                            <span className={nameClasses}>
+                              {product.name}
+                            </span>
+                            {!hasStock && (
+                              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 rounded">
+                                Agotado
+                              </span>
+                            )}
                           </div>
                           <div className={detailsClasses}>
                             Ref: {product.reference || 'N/A'} | 
                             Stock: {(product.stock?.warehouse || 0) + (product.stock?.store || 0)} | 
                             Precio: ${(product.price || 0).toLocaleString('es-CO')}
                           </div>
-                          {!hasStock && (
-                            <div className="mt-2 px-2 py-1 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 text-xs font-medium rounded">
-                              Sin Stock
-                            </div>
-                          )}
                         </div>
                       )})
                       )}

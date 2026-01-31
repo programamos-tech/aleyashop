@@ -11,7 +11,6 @@ import {
   Search, 
   Edit, 
   Trash2,
-  ArrowRightLeft,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -49,7 +48,6 @@ interface ProductTableProps {
   onCreate: () => void
   onManageCategories: () => void
   onStockAdjustment?: (product: Product) => void
-  onStockTransfer?: (product: Product) => void
   onRefresh?: () => void
   onPageChange: (page: number) => void
   onSearch: (searchTerm: string) => Promise<Product[]>
@@ -76,7 +74,6 @@ export function ProductTable({
   onManageCategories,
   onStockAdjustment,
   totalStock,
-  onStockTransfer,
   onRefresh,
   onPageChange,
   onSearch,
@@ -103,8 +100,6 @@ export function ProductTable({
   // Solo se pueden crear productos desde la tienda principal
   const canCreate = isVendedor ? false : (isMainStore && hasPermission('products', 'create'))
   const canAdjust = isVendedor ? false : hasPermission('products', 'edit') // Ajustar stock requiere editar
-  // Solo se puede transferir desde la tienda principal
-  const canTransfer = isVendedor ? false : (isMainStore && hasPermission('transfers', 'create'))
   
   // Debug: verificar valores
   useEffect(() => {
@@ -112,9 +107,9 @@ export function ProductTable({
       console.log('[PRODUCT TABLE] User role:', user.role)
       console.log('[PRODUCT TABLE] Is vendedor:', isVendedor)
       console.log('[PRODUCT TABLE] Is main store:', isMainStore)
-      console.log('[PRODUCT TABLE] Permissions:', { canEdit, canDelete, canCreate, canAdjust, canTransfer })
+      console.log('[PRODUCT TABLE] Permissions:', { canEdit, canDelete, canCreate, canAdjust })
     }
-  }, [user, isVendedor, isMainStore, canEdit, canDelete, canCreate, canAdjust, canTransfer])
+  }, [user, isVendedor, isMainStore, canEdit, canDelete, canCreate, canAdjust])
   const [searchTerm, setSearchTerm] = useState('')
 
   // Función simple para manejar búsqueda
@@ -510,16 +505,6 @@ export function ProductTable({
                                 <Package className="h-4 w-4" />
                               </Button>
                             )}
-                            {canTransfer && onStockTransfer && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => onStockTransfer(product)}
-                                className="h-8 w-8 p-0 text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-100 active:scale-95"
-                              >
-                                <ArrowRightLeft className="h-4 w-4" />
-                              </Button>
-                            )}
                             {canDelete && (
                               <Button
                                 size="sm"
@@ -673,29 +658,6 @@ export function ProductTable({
                                 </Tooltip>
                               )}
 
-                              {canTransfer && onStockTransfer && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        onStockTransfer(product)
-                                      }}
-                                      className="h-8 w-8 p-0 text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-100 active:scale-95"
-                                    >
-                                      <ArrowRightLeft className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="z-50 bg-[#f29fc8] text-white border-[#d06a98] shadow-lg">
-                                    <div className="text-center">
-                                      <p className="font-medium text-white">Transferir Stock</p>
-                                      <p className="text-xs text-[#fce4f0]">Mover entre Bodega y Local</p>
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
 
                               {canDelete && (
                                 <Tooltip>

@@ -24,7 +24,7 @@ export function Logo({ className, showText = false, size = 'md' }: LogoProps) {
         alt="Aleya Shop Logo"
         width={logoSize}
         height={logoSize}
-        className="rounded-lg object-cover shadow-md"
+        className="rounded-full object-cover shadow-md"
         priority
         unoptimized
       />

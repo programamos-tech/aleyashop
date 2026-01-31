@@ -25,7 +25,9 @@ import {
   X,
   Receipt,
   Wallet,
-  TrendingUp
+  TrendingUp,
+  Bike,
+  Store
 } from 'lucide-react'
 import { LogEntry } from '@/types/logs'
 
@@ -585,6 +587,20 @@ export function LogsTable({
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">#{totalLogs - ((currentPage - 1) * 20) - index}</span>
+                              {/* Icono de domicilio/tienda para ventas */}
+                              {(log.action === 'sale_create' || log.action === 'credit_sale_create') && (
+                                (log.details?.isDelivery || (log.details?.deliveryFee && log.details.deliveryFee > 0)) ? (
+                                  <span className="flex items-center gap-1 px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 rounded text-orange-600 dark:text-orange-400">
+                                    <Bike className="h-3 w-3" />
+                                    <span className="text-[10px] font-medium">Domi</span>
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 rounded text-green-600 dark:text-green-400">
+                                    <Store className="h-3 w-3" />
+                                    <span className="text-[10px] font-medium">Tienda</span>
+                                  </span>
+                                )
+                              )}
                             </div>
                             <h3 className="font-semibold text-sm text-gray-900 dark:text-white truncate" title={getTypeLabel(logType)}>
                               {getTypeLabel(logType)}
@@ -951,8 +967,26 @@ export function LogsTable({
                           >
                             {log.details ? 
                               (log.module === 'sales' ?
-                                (log.action === 'sale_create' ? `Nueva venta: ${log.details.clientName || 'Cliente'} - $${(log.details.total || 0).toLocaleString('es-CO')}` :
-                                 log.action === 'credit_sale_create' ? `Venta a crédito: ${log.details.clientName || 'Cliente'} - $${(log.details.total || 0).toLocaleString('es-CO')}` :
+                                (log.action === 'sale_create' ? (
+                                  <span className="flex items-center gap-1.5">
+                                    {(log.details.isDelivery || (log.details.deliveryFee && log.details.deliveryFee > 0)) ? (
+                                      <Bike className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
+                                    ) : (
+                                      <Store className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                                    )}
+                                    <span>Nueva venta: {log.details.clientName || 'Cliente'} - ${(log.details.total || 0).toLocaleString('es-CO')}</span>
+                                  </span>
+                                ) :
+                                 log.action === 'credit_sale_create' ? (
+                                  <span className="flex items-center gap-1.5">
+                                    {(log.details.isDelivery || (log.details.deliveryFee && log.details.deliveryFee > 0)) ? (
+                                      <Bike className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
+                                    ) : (
+                                      <Store className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                                    )}
+                                    <span>Venta a crédito: {log.details.clientName || 'Cliente'} - ${(log.details.total || 0).toLocaleString('es-CO')}</span>
+                                  </span>
+                                ) :
                                  log.action === 'sale_cancel' ? ((log.details as any)?.isCreditSale 
                                    ? `Factura perteneciente a un crédito cancelada: ${log.details.invoiceNumber || 'N/A'} - ${log.details.reason || 'Sin motivo'}`
                                    : `Venta cancelada: ${log.details.reason || 'Sin motivo'}`) :

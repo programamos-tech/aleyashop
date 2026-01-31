@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { X, Package, Tag, DollarSign, BarChart3, AlertTriangle, Store } from 'lucide-react'
+import { X, Package, Tag, DollarSign, BarChart3, AlertTriangle } from 'lucide-react'
 import { Product, Category, IVA_RATE, calculateWithTax, calculateTaxAmount } from '@/types'
 import { useProducts } from '@/contexts/products-context'
 import { useAuth } from '@/contexts/auth-context'
@@ -524,135 +524,48 @@ export function ProductModal({ isOpen, onClose, onSave, product, categories }: P
                       <BarChart3 className="h-4 w-4 text-[#f29fc8] dark:text-[#f29fc8]" />
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      El stock se muestra solo como información. Para modificar el inventario, usa las opciones de "Ajustar Stock" o "Transferir Stock" desde la tabla de productos.
+                      El stock se muestra solo como información. Para modificar el inventario, usa la opción "Ajustar Stock" desde la tabla de productos.
                     </p>
                   </div>
                 )}
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Ubicación inicial para nuevos productos - Solo tienda principal tiene opción de bodega */}
-                {!product && isMainStore && (
+                {/* Stock */}
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Package className="h-5 w-5 text-[#f29fc8]" />
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Stock</h4>
+                  </div>
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Ubicación Inicial
+                      Cantidad en Inventario
                     </label>
-                    <div className="flex space-x-4">
-                      <button
-                        type="button"
-                        onClick={() => handleInputChange('initialLocation', 'store')}
-                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all ${
-                          formData.initialLocation === 'store'
-                            ? 'border-[#fce4f0]0 bg-[#fce4f0] dark:bg-[#f29fc8]/20 text-[#d06a98] dark:text-[#f29fc8]'
-                            : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                        }`}
-                      >
-                        <Store className="h-4 w-4" />
-                        <span className="text-sm font-medium">Local</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleInputChange('initialLocation', 'warehouse')}
-                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all ${
-                          formData.initialLocation === 'warehouse'
-                            ? 'border-[#fce4f0]0 bg-[#fce4f0] dark:bg-[#f29fc8]/20 text-[#d06a98] dark:text-[#f29fc8]'
-                            : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                        }`}
-                      >
-                        <Package className="h-4 w-4" />
-                        <span className="text-sm font-medium">Bodega</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Stock por ubicación */}
-                <div className={`grid grid-cols-1 ${isMainStore ? 'md:grid-cols-2' : ''} gap-6`}>
-                  {/* Local */}
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Store className="h-5 w-5 text-[#f29fc8]" />
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Local</h4>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Stock Actual
-                      </label>
-                      {product ? (
-                        // Solo lectura para productos existentes
-                        <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 rounded-md bg-gray-100 dark:bg-gray-600/50 text-gray-600 dark:text-gray-300 cursor-not-allowed opacity-75">
-                          {formatNumber(formData.stock.store)} unidades
-                        </div>
-                      ) : (
-                        // Editable solo para nuevos productos
-                        <input
-                          type="text"
-                          value={formatNumber(formData.stock.store)}
-                          onChange={(e) => {
-                            const numericValue = parseFormattedNumber(e.target.value)
-                            handleInputChange('stock.store', numericValue)
-                          }}
-                          className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#fce4f0]0 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
-                            errors.stockStore ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                          }`}
-                          placeholder="0"
-                        />
-                      )}
-                      {errors.stockStore && (
-                        <p className="mt-1 text-sm text-red-400">{errors.stockStore}</p>
-                      )}
-                    </div>
-
-                  </div>
-
-                  {/* Bodega - Solo visible en tienda principal */}
-                  {isMainStore && (
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <Package className="h-5 w-5 text-[#f29fc8]" />
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Bodega</h4>
+                    {product ? (
+                      // Solo lectura para productos existentes
+                      <div className="w-full px-4 py-3 border border-gray-300 dark:border-gray-500 rounded-lg bg-gray-100 dark:bg-gray-600/50 text-gray-600 dark:text-gray-300 cursor-not-allowed">
+                        <span className="text-xl font-bold text-[#f29fc8]">
+                          {formatNumber(formData.stock.warehouse + formData.stock.store)} unidades
+                        </span>
                       </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Stock Actual
-                        </label>
-                        {product ? (
-                          // Solo lectura para productos existentes
-                          <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 rounded-md bg-gray-100 dark:bg-gray-600/50 text-gray-600 dark:text-gray-300 cursor-not-allowed opacity-75">
-                            {formatNumber(formData.stock.warehouse)} unidades
-                          </div>
-                        ) : (
-                          // Editable solo para nuevos productos
-                          <input
-                            type="text"
-                            value={formatNumber(formData.stock.warehouse)}
-                            onChange={(e) => {
-                              const numericValue = parseFormattedNumber(e.target.value)
-                              handleInputChange('stock.warehouse', numericValue)
-                            }}
-                            className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#fce4f0]0 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
-                              errors.stockWarehouse ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                            }`}
-                            placeholder="0"
-                          />
-                        )}
-                        {errors.stockWarehouse && (
-                          <p className="mt-1 text-sm text-red-400">{errors.stockWarehouse}</p>
-                        )}
-                      </div>
-
-                    </div>
-                  )}
-                </div>
-
-                {/* Total del stock */}
-                <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Stock Total:</span>
-                    <span className="text-lg font-bold text-[#f29fc8]">
-                      {formatNumber(isMainStore ? (formData.stock.warehouse + formData.stock.store) : formData.stock.store)} unidades
-                    </span>
+                    ) : (
+                      // Editable solo para nuevos productos
+                      <input
+                        type="text"
+                        value={formatNumber(formData.stock.store)}
+                        onChange={(e) => {
+                          const numericValue = parseFormattedNumber(e.target.value)
+                          handleInputChange('stock.store', numericValue)
+                        }}
+                        className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-[#fce4f0]0 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
+                          errors.stockStore ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                        }`}
+                        placeholder="0"
+                      />
+                    )}
+                    {errors.stockStore && (
+                      <p className="mt-1 text-sm text-red-400">{errors.stockStore}</p>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -681,11 +594,6 @@ export function ProductModal({ isOpen, onClose, onSave, product, categories }: P
                       <span className="text-sm font-medium">{getStatusLabel(status)}</span>
                     </button>
                   ))}
-                </div>
-                <div className="mt-3">
-                  <Badge className={getStatusColor(formData.status)}>
-                    {getStatusLabel(formData.status)}
-                  </Badge>
                 </div>
               </CardContent>
             </Card>

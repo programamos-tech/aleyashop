@@ -239,9 +239,10 @@ export default function SalesPage() {
             .logo {
               width: 64px;
               height: 64px;
-              object-fit: contain;
+              object-fit: cover;
               margin: 0 auto 6px auto;
               display: block;
+              border-radius: 50%;
             }
             .company-name { 
               font-size: 16px; 
@@ -418,7 +419,7 @@ export default function SalesPage() {
             <!-- Header -->
             <div class="header">
               <img src="${currentStore.logo || '/logo.jpeg'}" class="logo" alt="${currentStore.name}" />
-              <div class="company-name">${currentStore.name || 'Aleya Shop SAS'}</div>
+              <div class="company-name">Aleya Shop SAS</div>
               <div class="company-info">
                 ${currentStore.nit ? `<strong>NIT ${currentStore.nit}</strong><br>` : '<strong>NIT 901522077</strong><br>'}
                 <strong>Responsable de IVA</strong><br>
@@ -442,7 +443,7 @@ export default function SalesPage() {
               </div>
               <div class="detail-row">
                 <span><strong>Hora:</strong></span>
-                <span><strong>${new Date(sale.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</strong></span>
+                <span><strong>${new Date(sale.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' })}</strong></span>
               </div>
             </div>
 
@@ -484,34 +485,42 @@ export default function SalesPage() {
 
             <!-- Resumen -->
             <div class="summary">
-              ${(() => {
-                // Calcular subtotal de productos (con IVA incluido)
-                const subtotalConIva = sale.items.reduce((sum, item) => {
+              <div class="summary-row">
+                <span>Subtotal (sin IVA):</span>
+                <span>${formatCurrency(Math.round(sale.items.reduce((sum, item) => {
                   const baseTotal = item.quantity * item.unitPrice
                   const discountAmount = item.discountType === 'percentage' 
                     ? (baseTotal * (item.discount || 0)) / 100 
                     : (item.discount || 0)
                   return sum + Math.max(0, baseTotal - discountAmount)
-                }, 0)
-                // Calcular base sin IVA (para el desglose)
-                const subtotalSinIva = Math.round(subtotalConIva / 1.19)
-                const ivaCalculado = subtotalConIva - subtotalSinIva
-                
-                return \`
-                  <div class="summary-row">
-                    <span>Subtotal (sin IVA):</span>
-                    <span>\${formatCurrency(subtotalSinIva)}</span>
-                  </div>
-                  <div class="summary-row">
-                    <span>IVA (19%):</span>
-                    <span>\${formatCurrency(ivaCalculado)}</span>
-                  </div>
-                  <div class="summary-row subtotal-row">
-                    <span><strong>Subtotal:</strong></span>
-                    <span><strong>\${formatCurrency(subtotalConIva)}</strong></span>
-                  </div>
-                \`
-              })()}
+                }, 0) / 1.19))}</span>
+              </div>
+              <div class="summary-row">
+                <span>IVA (19%):</span>
+                <span>${formatCurrency(sale.items.reduce((sum, item) => {
+                  const baseTotal = item.quantity * item.unitPrice
+                  const discountAmount = item.discountType === 'percentage' 
+                    ? (baseTotal * (item.discount || 0)) / 100 
+                    : (item.discount || 0)
+                  return sum + Math.max(0, baseTotal - discountAmount)
+                }, 0) - Math.round(sale.items.reduce((sum, item) => {
+                  const baseTotal = item.quantity * item.unitPrice
+                  const discountAmount = item.discountType === 'percentage' 
+                    ? (baseTotal * (item.discount || 0)) / 100 
+                    : (item.discount || 0)
+                  return sum + Math.max(0, baseTotal - discountAmount)
+                }, 0) / 1.19))}</span>
+              </div>
+              <div class="summary-row subtotal-row">
+                <span><strong>Subtotal:</strong></span>
+                <span><strong>${formatCurrency(sale.items.reduce((sum, item) => {
+                  const baseTotal = item.quantity * item.unitPrice
+                  const discountAmount = item.discountType === 'percentage' 
+                    ? (baseTotal * (item.discount || 0)) / 100 
+                    : (item.discount || 0)
+                  return sum + Math.max(0, baseTotal - discountAmount)
+                }, 0))}</strong></span>
+              </div>
               ${sale.discount && sale.discount > 0.001 ? `
                 <div class="summary-row" style="color: #d32f2f;">
                   <span>Descuento:</span>

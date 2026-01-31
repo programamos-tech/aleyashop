@@ -412,7 +412,7 @@ export default function ProductDetailPage() {
     })
   }
 
-  // Calcular métricas de rotación y márgenes
+  // Calcular métricas de rotación y márgenes (SIN IVA para análisis real)
   const calculateMetrics = () => {
     console.log('Calculando métricas - Product:', product?.id, 'Sales:', sales.length)
     
@@ -420,7 +420,9 @@ export default function ProductDetailPage() {
       return {
         totalSold: 0,
         totalRevenue: 0,
+        totalRevenueSinIva: 0,
         totalCost: 0,
+        totalCostSinIva: 0,
         totalProfit: 0,
         profitMargin: 0,
         averageDailySales: 0,
@@ -431,8 +433,11 @@ export default function ProductDetailPage() {
 
     // Calcular métricas totales desde que se creó el producto
     let totalSold = 0
-    let totalRevenue = 0
-    let totalCost = 0
+    let totalRevenueConIva = 0 // Para referencia
+    let totalCostConIva = 0 // Para referencia
+    
+    // Costo sin IVA del producto
+    const costSinIva = product.costBeforeTax || Math.round(product.cost / 1.19)
     
     // Obtener fecha de creación del producto
     const productCreatedAt = new Date(product.createdAt)
@@ -447,8 +452,8 @@ export default function ProductDetailPage() {
       sale.items.forEach(item => {
         if (item.productId === product.id) {
           totalSold += item.quantity
-          totalRevenue += item.total
-          totalCost += (product.cost * item.quantity)
+          totalRevenueConIva += item.total
+          totalCostConIva += (product.cost * item.quantity)
           
           // Agrupar por día
           const saleDate = new Date(sale.createdAt)
@@ -458,8 +463,12 @@ export default function ProductDetailPage() {
       })
     })
 
-    const totalProfit = totalRevenue - totalCost
-    const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0
+    // Calcular valores SIN IVA para análisis real de márgenes
+    const totalRevenueSinIva = Math.round(totalRevenueConIva / 1.19)
+    const totalCostSinIva = costSinIva * totalSold
+    
+    const totalProfit = totalRevenueSinIva - totalCostSinIva
+    const profitMargin = totalRevenueSinIva > 0 ? (totalProfit / totalRevenueSinIva) * 100 : 0
 
     // Calcular promedio diario de ventas desde la creación
     const daysSinceCreation = Math.max(1, Math.ceil(
@@ -519,8 +528,10 @@ export default function ProductDetailPage() {
 
     return {
       totalSold,
-      totalRevenue,
-      totalCost,
+      totalRevenue: totalRevenueSinIva, // Sin IVA
+      totalRevenueConIva,
+      totalCost: totalCostSinIva, // Sin IVA
+      totalCostConIva,
       totalProfit,
       profitMargin,
       averageDailySales,
@@ -586,37 +597,14 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
 
-                  {/* Resumen - En microtiendas solo Stock */}
-                  <div className={`grid ${isMainStore ? 'grid-cols-3' : 'grid-cols-1'} gap-2 md:gap-4 mt-3 md:mt-4`}>
-                    {isMainStore ? (
-                      <>
-                        <div className="p-2 md:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                          <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-1">Bodega</div>
-                          <div className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">
-                            {formatNumber(product.stock.warehouse)}
-                          </div>
-                        </div>
-                        <div className="p-2 md:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                          <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-1">Local</div>
-                          <div className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">
-                            {formatNumber(product.stock.store)}
-                          </div>
-                        </div>
-                        <div className="p-2 md:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                          <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-1">Total</div>
-                          <div className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">
-                            {formatNumber(product.stock.total)}
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="p-2 md:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-1">Stock</div>
-                        <div className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">
-                          {formatNumber(product.stock.store)}
-                        </div>
+                  {/* Resumen de Stock */}
+                  <div className="grid grid-cols-1 gap-2 md:gap-4 mt-3 md:mt-4">
+                    <div className="p-2 md:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                      <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-1">Stock</div>
+                      <div className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">
+                        {formatNumber(product.stock.total)}
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   {/* Estados y Botones de Acción */}
@@ -634,7 +622,7 @@ export default function ProductDetailPage() {
                     </div>
                     
                     {/* Botones en grid para mobile */}
-                    {(canEdit || canAdjust || canTransfer || canDelete) && (
+                    {(canEdit || canAdjust || canDelete) && (
                       <div className="grid grid-cols-2 md:flex md:items-center md:gap-2 gap-2 md:mt-0">
                         {canEdit && (
                           <Button
@@ -655,17 +643,6 @@ export default function ProductDetailPage() {
                             <Package className="h-3.5 w-3.5 md:mr-1.5" />
                             <span className="hidden md:inline">Ajustar</span>
                             <span className="md:hidden">Ajustar</span>
-                          </Button>
-                        )}
-                        {canTransfer && (
-                          <Button
-                            onClick={handleStockTransfer}
-                            variant="outline"
-                            className="text-purple-600 border-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:border-purple-400 dark:hover:bg-purple-900/20 text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-1 h-auto w-full md:w-auto"
-                          >
-                            <ArrowRightLeft className="h-3.5 w-3.5 md:mr-1.5" />
-                            <span className="hidden md:inline">Transferir</span>
-                            <span className="md:hidden">Transferir</span>
                           </Button>
                         )}
                         {canDelete && (
@@ -711,16 +688,53 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
               )}
-              <div>
-                <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-1">Precio de Venta</div>
-                <div className="text-sm md:text-base font-semibold text-gray-900 dark:text-white">
-                  {formatCurrency(product.price)}
+              {/* Precio de Venta con IVA */}
+              <div className="col-span-1 md:col-span-2 p-3 bg-[#fce4f0]/30 dark:bg-[#f29fc8]/10 rounded-lg border border-[#f29fc8]/30">
+                <div className="text-xs md:text-sm font-medium text-[#d06a98] dark:text-[#f29fc8] mb-2">Precio de Venta</div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <div className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">Sin IVA</div>
+                    <div className="text-sm md:text-base font-semibold text-gray-900 dark:text-white">
+                      {formatCurrency(product.priceBeforeTax || Math.round(product.price / 1.19))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">IVA (19%)</div>
+                    <div className="text-sm md:text-base font-semibold text-gray-600 dark:text-gray-300">
+                      {formatCurrency(product.price - (product.priceBeforeTax || Math.round(product.price / 1.19)))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">Con IVA</div>
+                    <div className="text-sm md:text-base font-bold text-[#d06a98] dark:text-[#f29fc8]">
+                      {formatCurrency(product.price)}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-1">Costo</div>
-                <div className="text-sm md:text-base font-semibold text-gray-900 dark:text-white">
-                  {formatCurrency(product.cost)}
+              
+              {/* Costo con IVA */}
+              <div className="col-span-1 md:col-span-2 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600">
+                <div className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Costo de Compra</div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <div className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">Sin IVA</div>
+                    <div className="text-sm md:text-base font-semibold text-gray-900 dark:text-white">
+                      {formatCurrency(product.costBeforeTax || Math.round(product.cost / 1.19))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">IVA (19%)</div>
+                    <div className="text-sm md:text-base font-semibold text-gray-600 dark:text-gray-300">
+                      {formatCurrency(product.cost - (product.costBeforeTax || Math.round(product.cost / 1.19)))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">Con IVA</div>
+                    <div className="text-sm md:text-base font-bold text-gray-900 dark:text-white">
+                      {formatCurrency(product.cost)}
+                    </div>
+                  </div>
                 </div>
               </div>
               <div>
@@ -737,15 +751,6 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
               )}
-              <div>
-                <div className="text-xs md:text-sm text-gray-400 dark:text-gray-500 mb-1 flex items-center gap-1 flex-wrap">
-                  <span>Última Actualización de Inventario</span>
-                  <span className="text-[10px] md:text-xs text-gray-400 dark:text-gray-600 italic">(próximamente)</span>
-                </div>
-                <div className="text-sm md:text-base text-gray-400 dark:text-gray-600 italic">
-                  No disponible
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -778,26 +783,26 @@ export default function ProductDetailPage() {
               <div className="p-2 md:p-4 bg-gradient-to-br from-[#fce4f0] to-[#fce4f0] dark:from-[#f29fc8]/20 dark:to-[#d06a98]/20 rounded-lg border border-[#f29fc8]/50 dark:border-[#d06a98]">
                 <div className="flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
                   <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-[#f29fc8] dark:text-[#f29fc8] flex-shrink-0" />
-                  <div className="text-[10px] md:text-xs text-[#f29fc8] dark:text-[#f29fc8] font-medium truncate">Ingresos Totales</div>
+                  <div className="text-[10px] md:text-xs text-[#f29fc8] dark:text-[#f29fc8] font-medium truncate">Ingresos (sin IVA)</div>
                 </div>
                 <div className="text-base md:text-xl font-bold text-[#f29fc8] dark:text-[#fce4f0] truncate">
                   {formatCurrency(metrics.totalRevenue)}
                 </div>
                 <div className="text-[10px] md:text-xs text-[#e07ab0] dark:text-[#f29fc8] mt-0.5 md:mt-1">
-                  Total histórico
+                  Base imponible
                 </div>
               </div>
               
               <div className="p-2 md:p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800">
                 <div className="flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
                   <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-                  <div className="text-[10px] md:text-xs text-purple-600 dark:text-purple-400 font-medium truncate">Ganancia Total</div>
+                  <div className="text-[10px] md:text-xs text-purple-600 dark:text-purple-400 font-medium truncate">Ganancia (sin IVA)</div>
                 </div>
                 <div className="text-base md:text-xl font-bold text-purple-900 dark:text-purple-100 truncate">
                   {formatCurrency(metrics.totalProfit)}
                 </div>
                 <div className="text-[10px] md:text-xs text-purple-700 dark:text-purple-300 mt-0.5 md:mt-1">
-                  {metrics.profitMargin.toFixed(1)}% margen
+                  {metrics.profitMargin.toFixed(1)}% margen real
                 </div>
               </div>
               
