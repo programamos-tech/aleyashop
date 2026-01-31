@@ -9,7 +9,6 @@ import {
   Search, 
   Plus, 
   Edit, 
-  Trash2, 
   Users,
   Building2,
   User,
@@ -227,14 +226,6 @@ export function ClientTable({
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => onDelete(client)}
-                              className="h-8 w-8 p-0 text-red-400 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 active:scale-95"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
                           </div>
                         )}
                         {isStoreClient(client) && (
@@ -319,18 +310,6 @@ export function ClientTable({
                                 title="Editar cliente"
                               >
                                 <Edit className="h-5 w-5" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  onDelete(client)
-                                }}
-                                className="h-10 w-10 p-0 text-red-400 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                title="Eliminar cliente"
-                              >
-                                <Trash2 className="h-5 w-5" />
                               </Button>
                             </div>
                           )}
