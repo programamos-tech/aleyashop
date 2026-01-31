@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { X, Package, Tag, DollarSign, BarChart3, AlertTriangle, Store } from 'lucide-react'
-import { Product, Category } from '@/types'
+import { Product, Category, IVA_RATE, calculateWithTax, calculateTaxAmount } from '@/types'
 import { useProducts } from '@/contexts/products-context'
 import { useAuth } from '@/contexts/auth-context'
 
@@ -30,8 +30,8 @@ export function ProductModal({ isOpen, onClose, onSave, product, categories }: P
     name: product?.name || '',
     reference: product?.reference || '',
     description: product?.description || '',
-    price: product?.price || 0,
-    cost: product?.cost || 0,
+    priceBeforeTax: product?.priceBeforeTax || 0, // Precio SIN IVA
+    costBeforeTax: product?.costBeforeTax || 0, // Costo SIN IVA
     stock: {
       warehouse: product?.stock?.warehouse || 0,
       store: product?.stock?.store || 0,
@@ -52,8 +52,8 @@ export function ProductModal({ isOpen, onClose, onSave, product, categories }: P
         name: product.name || '',
         reference: product.reference || '',
         description: product.description || '',
-        price: product.price || 0,
-        cost: product.cost || 0,
+        priceBeforeTax: product.priceBeforeTax || Math.round((product.price || 0) / (1 + IVA_RATE)), // Precio SIN IVA
+        costBeforeTax: product.costBeforeTax || Math.round((product.cost || 0) / (1 + IVA_RATE)), // Costo SIN IVA
         stock: {
           warehouse: product.stock?.warehouse || 0,
           store: product.stock?.store || 0,
@@ -143,11 +143,11 @@ export function ProductModal({ isOpen, onClose, onSave, product, categories }: P
       }
     }
     // Campo descripción ahora es opcional
-    if (formData.price <= 0) {
-      newErrors.price = 'El precio debe ser mayor a 0'
+    if (formData.priceBeforeTax <= 0) {
+      newErrors.priceBeforeTax = 'El precio debe ser mayor a 0'
     }
-    if (formData.cost < 0) {
-      newErrors.cost = 'El costo no puede ser negativo'
+    if (formData.costBeforeTax < 0) {
+      newErrors.costBeforeTax = 'El costo no puede ser negativo'
     }
     if (formData.stock.warehouse < 0) {
       newErrors.stockWarehouse = 'El stock de bodega no puede ser negativo'
@@ -184,12 +184,18 @@ export function ProductModal({ isOpen, onClose, onSave, product, categories }: P
   const handleSave = () => {
     if (validateForm()) {
       const totalStock = formData.stock.warehouse + formData.stock.store
+      // Calcular precios con IVA
+      const priceWithTax = calculateWithTax(formData.priceBeforeTax)
+      const costWithTax = calculateWithTax(formData.costBeforeTax)
+      
       const productData: Omit<Product, 'id'> = {
         name: formData.name.trim(),
         reference: formData.reference.trim(),
         description: formData.description.trim(),
-        price: formData.price,
-        cost: formData.cost,
+        price: priceWithTax, // Precio CON IVA
+        priceBeforeTax: formData.priceBeforeTax, // Precio SIN IVA
+        cost: costWithTax, // Costo CON IVA
+        costBeforeTax: formData.costBeforeTax, // Costo SIN IVA
         stock: {
           warehouse: formData.stock.warehouse,
           store: formData.stock.store,
@@ -212,8 +218,8 @@ export function ProductModal({ isOpen, onClose, onSave, product, categories }: P
       name: '',
       reference: '',
       description: '',
-      price: 0,
-      cost: 0,
+      priceBeforeTax: 0,
+      costBeforeTax: 0,
       stock: {
         warehouse: 0,
         store: 0,
@@ -382,59 +388,123 @@ export function ProductModal({ isOpen, onClose, onSave, product, categories }: P
                   <DollarSign className="h-5 w-5 mr-2 text-[#f29fc8]" />
                   Información Financiera
                 </CardTitle>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Ingresa los precios SIN IVA. El sistema calcula automáticamente el IVA (19%).
+                </p>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Precio de Venta *
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-gray-400 text-sm">$</span>
+              <CardContent className="space-y-6">
+                {/* Costo de Compra */}
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Costo de Compra</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        Base (sin IVA) *
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-400 text-sm">$</span>
+                        </div>
+                        <input
+                          type="text"
+                          value={formatNumber(formData.costBeforeTax)}
+                          onChange={(e) => {
+                            const numericValue = parseFormattedNumber(e.target.value)
+                            handleInputChange('costBeforeTax', numericValue)
+                          }}
+                          className={`w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-[#fce4f0] focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
+                            errors.costBeforeTax ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                          placeholder="0"
+                        />
+                      </div>
+                      {errors.costBeforeTax && (
+                        <p className="mt-1 text-xs text-red-400">{errors.costBeforeTax}</p>
+                      )}
                     </div>
-                    <input
-                      type="text"
-                      value={formatNumber(formData.price)}
-                      onChange={(e) => {
-                        const numericValue = parseFormattedNumber(e.target.value)
-                        handleInputChange('price', numericValue)
-                      }}
-                      className={`w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-[#fce4f0]0 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
-                        errors.price ? 'border-red-500 ' : 'border-gray-600 '
-                      }`}
-                      placeholder="0"
-                    />
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        IVA (19%)
+                      </label>
+                      <div className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-600/50 text-gray-600 dark:text-gray-300">
+                        $ {formatNumber(calculateTaxAmount(formData.costBeforeTax))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        Total (con IVA)
+                      </label>
+                      <div className="w-full px-3 py-2 border border-[#f29fc8]/50 rounded-md bg-[#fce4f0]/30 dark:bg-[#f29fc8]/10 text-[#d06a98] dark:text-[#f29fc8] font-semibold">
+                        $ {formatNumber(calculateWithTax(formData.costBeforeTax))}
+                      </div>
+                    </div>
                   </div>
-                  {errors.price && (
-                    <p className="mt-1 text-sm text-red-400 ">{errors.price}</p>
-                  )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Costo de Adquisición
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-gray-400 text-sm">$</span>
+                {/* Precio de Venta */}
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Precio de Venta</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        Base (sin IVA) *
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-400 text-sm">$</span>
+                        </div>
+                        <input
+                          type="text"
+                          value={formatNumber(formData.priceBeforeTax)}
+                          onChange={(e) => {
+                            const numericValue = parseFormattedNumber(e.target.value)
+                            handleInputChange('priceBeforeTax', numericValue)
+                          }}
+                          className={`w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-[#fce4f0] focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
+                            errors.priceBeforeTax ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                          placeholder="0"
+                        />
+                      </div>
+                      {errors.priceBeforeTax && (
+                        <p className="mt-1 text-xs text-red-400">{errors.priceBeforeTax}</p>
+                      )}
                     </div>
-                    <input
-                      type="text"
-                      value={formatNumber(formData.cost)}
-                      onChange={(e) => {
-                        const numericValue = parseFormattedNumber(e.target.value)
-                        handleInputChange('cost', numericValue)
-                      }}
-                      className={`w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-[#fce4f0]0 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
-                        errors.cost ? 'border-red-500 ' : 'border-gray-600 '
-                      }`}
-                      placeholder="0"
-                    />
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        IVA (19%)
+                      </label>
+                      <div className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-600/50 text-gray-600 dark:text-gray-300">
+                        $ {formatNumber(calculateTaxAmount(formData.priceBeforeTax))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        Total (con IVA)
+                      </label>
+                      <div className="w-full px-3 py-2 border border-[#f29fc8]/50 rounded-md bg-[#fce4f0]/30 dark:bg-[#f29fc8]/10 text-[#d06a98] dark:text-[#f29fc8] font-semibold">
+                        $ {formatNumber(calculateWithTax(formData.priceBeforeTax))}
+                      </div>
+                    </div>
                   </div>
-                  {errors.cost && (
-                    <p className="mt-1 text-sm text-red-400 ">{errors.cost}</p>
-                  )}
                 </div>
+
+                {/* Resumen de Margen */}
+                {formData.priceBeforeTax > 0 && formData.costBeforeTax > 0 && (
+                  <div className="bg-[#fce4f0]/50 dark:bg-[#f29fc8]/10 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Margen de Ganancia:</span>
+                      <div className="text-right">
+                        <span className="text-lg font-bold text-[#d06a98] dark:text-[#f29fc8]">
+                          $ {formatNumber(calculateWithTax(formData.priceBeforeTax) - calculateWithTax(formData.costBeforeTax))}
+                        </span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                          ({Math.round(((formData.priceBeforeTax - formData.costBeforeTax) / formData.costBeforeTax) * 100)}%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
               </div>

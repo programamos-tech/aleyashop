@@ -32,8 +32,10 @@ export interface Product {
   name: string
   reference: string
   description: string
-  price: number
-  cost: number
+  price: number // Precio venta CON IVA
+  priceBeforeTax: number // Precio venta SIN IVA
+  cost: number // Costo compra CON IVA
+  costBeforeTax: number // Costo compra SIN IVA
   stock: {
     warehouse: number
     store: number
@@ -45,6 +47,14 @@ export interface Product {
   createdAt: string
   updatedAt: string
 }
+
+// Constante para el IVA (19%)
+export const IVA_RATE = 0.19
+
+// Helpers para calcular IVA
+export const calculateWithTax = (basePrice: number): number => Math.round(basePrice * (1 + IVA_RATE))
+export const calculateWithoutTax = (priceWithTax: number): number => Math.round(priceWithTax / (1 + IVA_RATE))
+export const calculateTaxAmount = (basePrice: number): number => Math.round(basePrice * IVA_RATE)
 
 // StockTransfer antiguo (mantener para compatibilidad)
 export interface StockTransfer {

@@ -1,5 +1,5 @@
 import { supabase, supabaseAdmin } from './supabase'
-import { Product } from '@/types'
+import { Product, IVA_RATE, calculateWithTax } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
 import { AuthService } from './auth-service'
 import { StoresService } from './stores-service'
@@ -386,8 +386,10 @@ export class ProductsService {
           categoryId: product.category_id,
           brand: product.brand,
           reference: product.reference,
-          price: productPrice,
-          cost: productCost,
+          price: productPrice, // Precio CON IVA
+          priceBeforeTax: product.price_before_tax || Math.round(productPrice / (1 + IVA_RATE)), // Precio SIN IVA
+          cost: productCost, // Costo CON IVA
+          costBeforeTax: product.cost_before_tax || Math.round(productCost / (1 + IVA_RATE)), // Costo SIN IVA
           stock: stock,
           status: product.status,
           createdAt: product.created_at,
@@ -576,8 +578,10 @@ export class ProductsService {
             categoryId: product.category_id,
             brand: product.brand,
             reference: product.reference,
-            price: productPrice,
-            cost: productCost,
+            price: productPrice, // Precio CON IVA
+            priceBeforeTax: product.price_before_tax || Math.round(productPrice / (1 + IVA_RATE)), // Precio SIN IVA
+            cost: productCost, // Costo CON IVA
+            costBeforeTax: product.cost_before_tax || Math.round(productCost / (1 + IVA_RATE)), // Costo SIN IVA
             stock: stock,
             status: product.status,
             createdAt: product.created_at,
@@ -764,8 +768,10 @@ export class ProductsService {
         categoryId: data.category_id,
         brand: data.brand,
         reference: data.reference,
-        price: productPrice,
-        cost: productCost,
+        price: productPrice, // Precio CON IVA
+        priceBeforeTax: data.price_before_tax || Math.round(productPrice / (1 + IVA_RATE)), // Precio SIN IVA
+        cost: productCost, // Costo CON IVA
+        costBeforeTax: data.cost_before_tax || Math.round(productCost / (1 + IVA_RATE)), // Costo SIN IVA
         stock: stock,
         status: data.status,
         createdAt: data.created_at,
@@ -783,6 +789,12 @@ export class ProductsService {
   // Crear nuevo producto
   static async createProduct(productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>, currentUserId?: string): Promise<Product | null> {
     try {
+      // Calcular precios con IVA si solo se proporcionan precios sin IVA
+      const priceBeforeTax = productData.priceBeforeTax || Math.round(productData.price / (1 + IVA_RATE))
+      const costBeforeTax = productData.costBeforeTax || Math.round(productData.cost / (1 + IVA_RATE))
+      const priceWithTax = productData.price || calculateWithTax(priceBeforeTax)
+      const costWithTax = productData.cost || calculateWithTax(costBeforeTax)
+      
       const insertData = {
         id: uuidv4(),
         name: productData.name,
@@ -790,8 +802,10 @@ export class ProductsService {
         category_id: productData.categoryId || null, // Convertir string vacío a null
         brand: productData.brand || null, // Convertir string vacío a null
         reference: productData.reference,
-        price: productData.price,
-        cost: productData.cost,
+        price: priceWithTax, // Precio CON IVA
+        price_before_tax: priceBeforeTax, // Precio SIN IVA
+        cost: costWithTax, // Costo CON IVA
+        cost_before_tax: costBeforeTax, // Costo SIN IVA
         stock_warehouse: productData.stock.warehouse,
         stock_store: productData.stock.store,
         status: productData.status
@@ -858,8 +872,10 @@ export class ProductsService {
         categoryId: data.category_id,
         brand: data.brand,
         reference: data.reference,
-        price: data.price,
-        cost: data.cost,
+        price: data.price, // Precio CON IVA
+        priceBeforeTax: data.price_before_tax || Math.round(data.price / (1 + IVA_RATE)), // Precio SIN IVA
+        cost: data.cost, // Costo CON IVA
+        costBeforeTax: data.cost_before_tax || Math.round(data.cost / (1 + IVA_RATE)), // Costo SIN IVA
         stock: {
           warehouse: data.stock_warehouse || 0,
           store: data.stock_store || 0,
@@ -895,8 +911,20 @@ export class ProductsService {
       // Cost y Price: en microtiendas se actualizan en store_stock, en tienda principal en products
       if (isMainStore) {
         // Tienda principal: actualizar en products
-        if (updates.price !== undefined) updateData.price = updates.price
-        if (updates.cost !== undefined) updateData.cost = updates.cost
+        if (updates.priceBeforeTax !== undefined) {
+          updateData.price_before_tax = updates.priceBeforeTax
+          updateData.price = calculateWithTax(updates.priceBeforeTax) // Calcular precio CON IVA
+        } else if (updates.price !== undefined) {
+          updateData.price = updates.price
+          updateData.price_before_tax = Math.round(updates.price / (1 + IVA_RATE))
+        }
+        if (updates.costBeforeTax !== undefined) {
+          updateData.cost_before_tax = updates.costBeforeTax
+          updateData.cost = calculateWithTax(updates.costBeforeTax) // Calcular costo CON IVA
+        } else if (updates.cost !== undefined) {
+          updateData.cost = updates.cost
+          updateData.cost_before_tax = Math.round(updates.cost / (1 + IVA_RATE))
+        }
         if (updates.stock) {
           updateData.stock_warehouse = updates.stock.warehouse
           updateData.stock_store = updates.stock.store
@@ -1121,8 +1149,10 @@ export class ProductsService {
           categoryId: product.category_id,
           brand: product.brand,
           reference: product.reference,
-          price: productPrice,
-          cost: productCost,
+          price: productPrice, // Precio CON IVA
+          priceBeforeTax: product.price_before_tax || Math.round(productPrice / (1 + IVA_RATE)), // Precio SIN IVA
+          cost: productCost, // Costo CON IVA
+          costBeforeTax: product.cost_before_tax || Math.round(productCost / (1 + IVA_RATE)), // Costo SIN IVA
           stock: stock,
           status: product.status,
           createdAt: product.created_at,

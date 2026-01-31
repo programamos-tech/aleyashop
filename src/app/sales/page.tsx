@@ -484,26 +484,44 @@ export default function SalesPage() {
 
             <!-- Resumen -->
             <div class="summary">
-              <div class="summary-row subtotal-row">
-                <span><strong>Subtotal:</strong></span>
-                <span><strong>${formatCurrency(sale.items.reduce((sum, item) => {
+              ${(() => {
+                // Calcular subtotal de productos (con IVA incluido)
+                const subtotalConIva = sale.items.reduce((sum, item) => {
                   const baseTotal = item.quantity * item.unitPrice
                   const discountAmount = item.discountType === 'percentage' 
                     ? (baseTotal * (item.discount || 0)) / 100 
                     : (item.discount || 0)
                   return sum + Math.max(0, baseTotal - discountAmount)
-                }, 0))}</strong></span>
-              </div>
+                }, 0)
+                // Calcular base sin IVA (para el desglose)
+                const subtotalSinIva = Math.round(subtotalConIva / 1.19)
+                const ivaCalculado = subtotalConIva - subtotalSinIva
+                
+                return \`
+                  <div class="summary-row">
+                    <span>Subtotal (sin IVA):</span>
+                    <span>\${formatCurrency(subtotalSinIva)}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span>IVA (19%):</span>
+                    <span>\${formatCurrency(ivaCalculado)}</span>
+                  </div>
+                  <div class="summary-row subtotal-row">
+                    <span><strong>Subtotal:</strong></span>
+                    <span><strong>\${formatCurrency(subtotalConIva)}</strong></span>
+                  </div>
+                \`
+              })()}
               ${sale.discount && sale.discount > 0.001 ? `
                 <div class="summary-row" style="color: #d32f2f;">
                   <span>Descuento:</span>
                   <span>${sale.discountType === 'percentage' ? `-${sale.discount}%` : `-${formatCurrency(sale.discount)}`}</span>
                 </div>
               ` : ''}
-              ${sale.tax && sale.tax > 0 ? `
+              ${sale.isDelivery && sale.deliveryFee ? `
                 <div class="summary-row">
-                  <span>IVA (19%):</span>
-                  <span>${formatCurrency(sale.tax)}</span>
+                  <span>Domicilio:</span>
+                  <span>${formatCurrency(sale.deliveryFee)}</span>
                 </div>
               ` : ''}
               <div class="summary-row total-row">
