@@ -1480,14 +1480,15 @@ export class ProductsService {
 
       if (isMainStore) {
         // Tienda principal: actualizar en tabla products
-        const field = location === 'warehouse' ? 'stock_warehouse' : 'stock_store'
-        currentQuantity = location === 'warehouse' ? product.stock.warehouse : product.stock.store
+        // Stock simplificado - todo va a stock_store, warehouse queda en 0
+        currentQuantity = product.stock.warehouse + product.stock.store
         difference = newQuantity - currentQuantity
 
         const { error } = await supabase
           .from('products')
           .update({
-            [field]: newQuantity
+            stock_store: newQuantity,
+            stock_warehouse: 0
           })
           .eq('id', productId)
 

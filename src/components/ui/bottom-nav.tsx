@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Receipt, Package, Users, Activity, Shield, UserCircle } from 'lucide-react'
+import { LayoutDashboard, Receipt, Package, Users, Activity, Shield, UserCircle, ShieldCheck } from 'lucide-react'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useAuth } from '@/contexts/auth-context'
 
@@ -12,6 +12,7 @@ const items = [
   { href: '/inventory/products', label: 'Productos', icon: Package, module: 'products' },
   { href: '/clients', label: 'Clientes', icon: Users, module: 'clients' },
   { href: '/sales', label: 'Ventas', icon: Receipt, module: 'sales' },
+  { href: '/warranties', label: 'Garantías', icon: ShieldCheck, module: 'warranties' },
   { href: '/roles', label: 'Roles', icon: Shield, module: 'roles' },
   { href: '/logs', label: 'Actividad', icon: Activity, module: 'logs' },
   { href: '/profile', label: 'Perfil', icon: UserCircle, module: 'dashboard', alwaysVisible: true },

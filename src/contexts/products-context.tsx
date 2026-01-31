@@ -192,17 +192,15 @@ export const ProductsProvider = ({ children }: { children: ReactNode }) => {
   const adjustStock = async (productId: string, location: 'warehouse' | 'store', newQuantity: number, reason: string): Promise<boolean> => {
     const success = await ProductsService.adjustStock(productId, location, newQuantity, reason, currentUser?.id)
     if (success) {
-      // Actualizar el estado local
+      // Actualizar el estado local - stock simplificado, todo va a store
       setProducts(prev => prev.map(product => {
         if (product.id === productId) {
-          const newWarehouseStock = location === 'warehouse' ? newQuantity : product.stock.warehouse
-          const newStoreStock = location === 'store' ? newQuantity : product.stock.store
           return {
             ...product,
             stock: {
-              warehouse: newWarehouseStock,
-              store: newStoreStock,
-              total: newWarehouseStock + newStoreStock
+              warehouse: 0,
+              store: newQuantity,
+              total: newQuantity
             }
           }
         }

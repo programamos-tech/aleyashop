@@ -26,11 +26,8 @@ const roleOptions = [
 const moduleOptions = [
   { value: 'dashboard', label: 'Dashboard' },
   { value: 'products', label: 'Productos' },
-  { value: 'transfers', label: 'Transferencias' },
-  { value: 'receptions', label: 'Recepciones' },
   { value: 'clients', label: 'Clientes' },
   { value: 'sales', label: 'Ventas' },
-  { value: 'payments', label: 'Créditos' },
   { value: 'warranties', label: 'Garantías' },
   { value: 'roles', label: 'Roles' },
   { value: 'logs', label: 'Actividades' }
@@ -679,7 +676,7 @@ export function UserManagement() {
                                   type="checkbox"
                                   checked={hasModuleAccess(module.value)}
                                   onChange={() => toggleModule(module.value)}
-                                  className="w-5 h-5 text-[#f29fc8] bg-gray-100 border-gray-300 rounded focus:ring-[#fce4f0]0 focus:ring-2"
+                                  className="w-5 h-5 accent-[#f29fc8] bg-gray-100 border-gray-300 rounded focus:ring-[#fce4f0] focus:ring-2 cursor-pointer"
                                 />
                                 <span className="font-semibold text-base text-gray-900 dark:text-white">{module.label}</span>
                               </label>
@@ -1112,7 +1109,7 @@ export function UserManagement() {
                               type="checkbox"
                               checked={hasModuleAccess(module.value)}
                               onChange={() => toggleModule(module.value)}
-                              className="w-5 h-5 text-[#f29fc8] bg-gray-100 border-gray-300 rounded focus:ring-[#fce4f0]0 focus:ring-2"
+                              className="w-5 h-5 accent-[#f29fc8] bg-gray-100 border-gray-300 rounded focus:ring-[#fce4f0] focus:ring-2 cursor-pointer"
                             />
                             <span className="font-semibold text-base text-gray-900 dark:text-white">{module.label}</span>
                           </label>

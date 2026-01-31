@@ -1819,63 +1819,10 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* Segunda fila de métricas - 3 cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-10 items-stretch">
-        {/* Dinero Afuera - Para usuarios con permisos de créditos, pero NO para Super Admin */}
-        {canViewCredits && !isSuperAdmin && (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={goToCredits}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                goToCredits()
-              }
-            }}
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col h-full"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
-                <CreditCard className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
-              </div>
-              <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Dinero Afuera</span>
-            </div>
-            <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1">
-              {formatCurrency(isSuperAdmin ? metrics.totalDebt : metrics.dailyCreditsDebt || 0)}
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              {isSuperAdmin 
-                ? `${metrics.pendingCreditsCount} créditos pendientes`
-                : `${metrics.dailyCreditsCount || 0} créditos del día`
-              }
-            </p>
-          </div>
-        )}
-
-        {/* Garantías Completadas */}
-        <div 
-          onClick={() => router.push('/warranties')}
-          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col h-full"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
-              <Shield className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
-            </div>
-            <div className="text-right">
-              <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Garantías Completadas</span>
-            </div>
-          </div>
-          <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1">
-            {metrics.completedWarranties}
-          </p>
-          <p className="text-xs text-gray-600 dark:text-gray-400">
-            Garantías completadas
-          </p>
-        </div>
-
-        {/* Ganancia Bruta */}
-        {isSuperAdmin && (
+      {/* Segunda fila de métricas - Solo para Super Admin */}
+      {isSuperAdmin && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-10 items-stretch">
+          {/* Ganancia Bruta */}
           <div 
             onClick={() => router.push('/sales')}
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col h-full"
@@ -1907,10 +1854,8 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        )}
 
-        {/* Inversión en Stock - Solo para Super Admin */}
-        {isSuperAdmin && (
+          {/* Inversión en Stock */}
           <div 
             onClick={() => router.push('/inventory/products')}
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col h-full"
@@ -1930,9 +1875,8 @@ export default function DashboardPage() {
               Dinero invertido en productos (costo con IVA)
             </p>
           </div>
-        )}
-
-      </div>
+        </div>
+      )}
 
       {/* Gráficos y estadísticas mejoradas */}
       <div className="space-y-4 md:space-y-6 mb-6 md:mb-8">

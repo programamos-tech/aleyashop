@@ -180,59 +180,33 @@ export function ProductTable({
     }
   }
 
-  // Nueva lógica para estados de stock más precisos
+  // Lógica simplificada para estados de stock (solo stock total)
   const getStockStatusLabel = (product: Product) => {
-    const { warehouse, store, total } = product.stock
+    const total = product.stock.warehouse + product.stock.store
     
     if (total === 0) {
       return 'Sin Stock'
+    } else if (total >= 10) {
+      return 'Disponible'
+    } else if (total >= 5) {
+      return 'Stock Bajo'
+    } else {
+      return 'Stock Muy Bajo'
     }
-    
-    if (store > 0) {
-      if (store >= 10) {
-        return 'Disponible Local'
-      } else if (store >= 5) {
-        return 'Stock Local Bajo'
-      } else {
-        return 'Stock Local Muy Bajo'
-      }
-    }
-    
-    if (warehouse > 0) {
-      if (warehouse >= 20) {
-        return 'Solo Bodega'
-      } else if (warehouse >= 10) {
-        return 'Solo Bodega (Bajo)'
-      } else {
-        return 'Solo Bodega (Muy Bajo)'
-      }
-    }
-    
-    return 'Sin Stock'
   }
 
   const getStockStatusColor = (product: Product) => {
-    const { warehouse, store, total } = product.stock
+    const total = product.stock.warehouse + product.stock.store
     
     if (total === 0) {
       return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100 hover:text-red-800 dark:hover:bg-red-900/20 dark:hover:text-red-400'
+    } else if (total >= 10) {
+      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100 hover:text-green-800 dark:hover:bg-green-900/20 dark:hover:text-green-400'
+    } else if (total >= 5) {
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 hover:bg-yellow-100 hover:text-yellow-800 dark:hover:bg-yellow-900/20 dark:hover:text-yellow-400'
+    } else {
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400 hover:bg-orange-100 hover:text-orange-800 dark:hover:bg-orange-900/20 dark:hover:text-orange-400'
     }
-    
-    if (store > 0) {
-      if (store >= 10) {
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100 hover:text-green-800 dark:hover:bg-green-900/20 dark:hover:text-green-400'
-      } else if (store >= 5) {
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 hover:bg-yellow-100 hover:text-yellow-800 dark:hover:bg-yellow-900/20 dark:hover:text-yellow-400'
-      } else {
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400 hover:bg-orange-100 hover:text-orange-800 dark:hover:bg-orange-900/20 dark:hover:text-orange-400'
-      }
-    }
-    
-    if (warehouse > 0) {
-      return 'bg-[#fce4f0] text-[#d06a98] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8] hover:bg-[#fce4f0] hover:text-[#d06a98] dark:hover:bg-[#f29fc8]/20 dark:hover:text-[#f29fc8]'
-    }
-    
-    return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100 hover:text-red-800 dark:hover:bg-red-900/20 dark:hover:text-red-400'
   }
 
   // Los productos ya vienen filtrados desde el contexto (filtro aplicado en backend)
@@ -245,19 +219,13 @@ export function ProductTable({
     }).format(amount)
   }
 
-  // Opciones de estado de stock - las de bodega solo para tienda principal
+  // Opciones de estado de stock simplificadas
   const stockStatusOptions = [
     { value: 'all', label: 'Todos los estados' },
     { value: 'Sin Stock', label: 'Sin Stock' },
-    { value: 'Disponible Local', label: 'Disponible Local' },
-    { value: 'Stock Local Bajo', label: 'Stock Local Bajo' },
-    { value: 'Stock Local Muy Bajo', label: 'Stock Local Muy Bajo' },
-    // Solo mostrar opciones de bodega en tienda principal
-    ...(isMainStore ? [
-      { value: 'Solo Bodega', label: 'Solo Bodega' },
-      { value: 'Solo Bodega (Bajo)', label: 'Solo Bodega (Bajo)' },
-      { value: 'Solo Bodega (Muy Bajo)', label: 'Solo Bodega (Muy Bajo)' }
-    ] : [])
+    { value: 'Disponible', label: 'Disponible' },
+    { value: 'Stock Bajo', label: 'Stock Bajo' },
+    { value: 'Stock Muy Bajo', label: 'Stock Muy Bajo' },
   ]
 
   return (
@@ -456,29 +424,16 @@ export function ProductTable({
                           </Badge>
                         </div>
                         
-                        {isMainStore ? (
-                          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                            <div className="text-center">
-                              <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Bodega</div>
-                              <div className="text-sm font-semibold text-gray-900 dark:text-white">{product.stock.warehouse}</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Local</div>
-                              <div className="text-sm font-semibold text-gray-900 dark:text-white">{product.stock.store}</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Total</div>
-                              <div className="text-sm font-semibold text-gray-900 dark:text-white">{product.stock.total}</div>
-                            </div>
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                          <div className="text-center">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Stock</div>
+                            <div className="text-sm font-semibold text-gray-900 dark:text-white">{product.stock.warehouse + product.stock.store}</div>
                           </div>
-                        ) : (
-                          <div className="flex justify-center pt-2 border-t border-gray-200 dark:border-gray-700">
-                            <div className="text-center">
-                              <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Stock</div>
-                              <div className="text-sm font-semibold text-gray-900 dark:text-white">{product.stock.store}</div>
-                            </div>
+                          <div className="text-center">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Precio</div>
+                            <div className="text-sm font-semibold text-[#f29fc8]">{formatCurrency(product.price)}</div>
                           </div>
-                        )}
+                        </div>
                         
                         <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
                           <Badge className={`${getStockStatusColor(product)} text-xs`} title={getStockStatusLabel(product)}>
@@ -555,49 +510,26 @@ export function ProductTable({
                                 </div>
                               </div>
                               
-                              {isMainStore ? (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                                  <div>
-                                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Bodega</div>
-                                    <div className="text-base font-semibold text-gray-900 dark:text-white">
-                                      {product.stock.warehouse}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Local</div>
-                                    <div className="text-base font-semibold text-gray-900 dark:text-white">
-                                      {product.stock.store}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total</div>
-                                    <div className="text-base font-semibold text-gray-900 dark:text-white">
-                                      {product.stock.total}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Estado Stock</div>
-                                    <Badge className={`${getStockStatusColor(product)} flex items-center gap-1 w-fit text-sm whitespace-nowrap`}>
-                                      {getStockStatusLabel(product)}
-                                    </Badge>
+                              <div className="grid grid-cols-3 gap-4 mt-4">
+                                <div>
+                                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Stock</div>
+                                  <div className="text-base font-semibold text-gray-900 dark:text-white">
+                                    {product.stock.warehouse + product.stock.store} unidades
                                   </div>
                                 </div>
-                              ) : (
-                                <div className="grid grid-cols-2 gap-4 mt-4">
-                                  <div>
-                                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Stock</div>
-                                    <div className="text-base font-semibold text-gray-900 dark:text-white">
-                                      {product.stock.store}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Estado Stock</div>
-                                    <Badge className={`${getStockStatusColor(product)} flex items-center gap-1 w-fit text-sm whitespace-nowrap`}>
-                                      {getStockStatusLabel(product)}
-                                    </Badge>
+                                <div>
+                                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Precio</div>
+                                  <div className="text-base font-semibold text-[#f29fc8]">
+                                    {formatCurrency(product.price)}
                                   </div>
                                 </div>
-                              )}
+                                <div>
+                                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Estado Stock</div>
+                                  <Badge className={`${getStockStatusColor(product)} flex items-center gap-1 w-fit text-sm whitespace-nowrap`}>
+                                    {getStockStatusLabel(product)}
+                                  </Badge>
+                                </div>
+                              </div>
                               
                               {product.status !== 'active' && (
                                 <div className="mt-4 flex items-center gap-2">

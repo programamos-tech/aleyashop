@@ -60,6 +60,7 @@ export default function NewSalePage() {
   const [isCreating, setIsCreating] = useState(false)
   const productRefs = useRef<(HTMLDivElement | null)[]>([])
   const lastSearchTermRef = useRef<string>('')
+  const [lastCompletedSearchTerm, setLastCompletedSearchTerm] = useState<string>('')
   // Cache de productos agregados a la venta para mantener su información de stock
   const [productsInSaleCache, setProductsInSaleCache] = useState<Map<string, Product>>(new Map())
   
@@ -104,6 +105,7 @@ export default function NewSalePage() {
     if (searchTerm.length < 2) {
       lastSearchTermRef.current = ''
       setSearchedProducts([])
+      setLastCompletedSearchTerm('')
       setIsSearchingProducts(false)
       return
     }
@@ -128,12 +130,14 @@ export default function NewSalePage() {
         // Verificar que el término no haya cambiado antes de actualizar
         if (!cancelled && lastSearchTermRef.current === searchTerm) {
           setSearchedProducts(results)
+          setLastCompletedSearchTerm(searchTerm)
           setIsSearchingProducts(false)
         }
       } catch (error) {
         // Error silencioso
         if (!cancelled && lastSearchTermRef.current === searchTerm) {
           setSearchedProducts([])
+          setLastCompletedSearchTerm(searchTerm)
           setIsSearchingProducts(false)
         }
       } finally {
@@ -228,12 +232,13 @@ export default function NewSalePage() {
       })
     }
     
-    // Si hay búsqueda pero no hay resultados y no está buscando, mostrar vacío
-    if (searchTerm.length >= 2 && searchedProducts.length === 0 && !isSearchingProducts) {
+    // Si hay búsqueda pero no hay resultados y no está buscando Y el término actual coincide con el último buscado completado
+    // Esta verificación evita mostrar "no hay resultados" mientras se busca un nuevo término
+    if (searchTerm.length >= 2 && searchedProducts.length === 0 && !isSearchingProducts && lastCompletedSearchTerm === searchTerm) {
       return []
     }
     
-    // Si está buscando o no hay búsqueda, usar productos locales como fallback
+    // Si está buscando, hay una nueva búsqueda pendiente, o no hay búsqueda, usar productos locales como fallback
     return products.filter(product => {
       if (!product || product.status !== 'active') return false
       const searchTermLower = searchTerm.toLowerCase()
@@ -262,7 +267,7 @@ export default function NewSalePage() {
       
       return 0
     })
-  }, [products, debouncedProductSearch, searchedProducts, isSearchingProducts])
+  }, [products, debouncedProductSearch, searchedProducts, isSearchingProducts, lastCompletedSearchTerm])
 
   const visibleProducts = useMemo(() => filteredProducts.slice(0, 15), [filteredProducts])
 
