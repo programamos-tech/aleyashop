@@ -19,7 +19,8 @@ import {
   Shield,
   RefreshCw,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Percent
 } from 'lucide-react'
 import { Sale, SaleItem, Product, Client, SalePayment } from '@/types'
 import { useClients } from '@/contexts/clients-context'
@@ -445,14 +446,27 @@ export function SaleModal({ isOpen, onClose, onSave, sale, onUpdate }: SaleModal
     () => orderedSelectedProducts.filter(item => item.quantity > 0),
     [orderedSelectedProducts]
   )
+
+  // Descuento por ítem: monto según tipo (porcentaje o valor fijo)
+  const getItemDiscountAmount = (item: SaleItem): number => {
+    const baseTotal = item.quantity * item.unitPrice
+    if (!item.discount || item.discount <= 0) return 0
+    return item.discountType === 'percentage'
+      ? Math.round((baseTotal * item.discount) / 100)
+      : Math.min(item.discount, baseTotal)
+  }
+
+  // Total por ítem después de descuento (base - descuento)
+  const getItemTotalWithDiscount = (item: SaleItem): number => {
+    const baseTotal = item.quantity * item.unitPrice
+    return Math.max(0, baseTotal - getItemDiscountAmount(item))
+  }
   
-  // Calcular subtotal (suma de precios)
-  const subtotal = validProducts.reduce((sum, item) => {
-    return sum + (item.quantity * item.unitPrice)
-  }, 0)
+  // Subtotal = suma de totales por ítem (ya con descuento por producto)
+  const subtotal = validProducts.reduce((sum, item) => sum + getItemTotalWithDiscount(item), 0)
   
-  // IVA automático sobre el total (19% en Colombia)
-  const tax = includeTax ? subtotal * 0.19 : 0
+  // IVA (19%) sobre el subtotal ya con descuentos
+  const tax = includeTax ? Math.round(subtotal * 0.19) : 0
   const total = subtotal + tax
 
   const getRemainingAmount = () => {
@@ -494,12 +508,11 @@ export function SaleModal({ isOpen, onClose, onSave, sale, onUpdate }: SaleModal
     
     if (existingItem) {
       const updatedTimestamp = Date.now()
-      setSelectedProducts(prev => 
+      setSelectedProducts(prev =>
         prev.map(item => {
           if (item.productId === product.id) {
             const updatedItem = { ...item, quantity: item.quantity + 1, addedAt: updatedTimestamp }
-            // Recalcular total
-            updatedItem.total = updatedItem.quantity * updatedItem.unitPrice
+            updatedItem.total = getItemTotalWithDiscount(updatedItem)
             return updatedItem
           }
           return item
@@ -515,7 +528,7 @@ export function SaleModal({ isOpen, onClose, onSave, sale, onUpdate }: SaleModal
         quantity: 1,
         unitPrice: product.price,
         discount: 0,
-        discountType: 'amount',
+        discountType: 'percentage',
         tax: 0,
         total: product.price,
         addedAt: now
@@ -541,13 +554,28 @@ export function SaleModal({ isOpen, onClose, onSave, sale, onUpdate }: SaleModal
   const handleUpdatePrice = (itemId: string, newPrice: number) => {
     if (newPrice < 0) return
 
-    // Permitir escribir libremente, la validación se hará al perder el foco
     setSelectedProducts(prev =>
       prev.map(item => {
         if (item.id === itemId) {
           const updatedItem = { ...item, unitPrice: newPrice }
-          // Recalcular total
-          updatedItem.total = updatedItem.quantity * newPrice
+          updatedItem.total = getItemTotalWithDiscount(updatedItem)
+          return updatedItem
+        }
+        return item
+      })
+    )
+  }
+
+  const handleUpdateDiscount = (itemId: string, discountValue: number, discountType: 'percentage' | 'amount') => {
+    setSelectedProducts(prev =>
+      prev.map(item => {
+        if (item.id === itemId) {
+          const updatedItem = {
+            ...item,
+            discount: Math.max(0, discountValue),
+            discountType
+          }
+          updatedItem.total = getItemTotalWithDiscount(updatedItem)
           return updatedItem
         }
         return item
@@ -654,8 +682,7 @@ export function SaleModal({ isOpen, onClose, onSave, sale, onUpdate }: SaleModal
       prev.map(item => {
         if (item.id === itemId) {
           const updatedItem = { ...item, quantity: newQuantity }
-          // Recalcular total
-          updatedItem.total = newQuantity * updatedItem.unitPrice
+          updatedItem.total = getItemTotalWithDiscount(updatedItem)
           return updatedItem
         }
         return item
@@ -690,15 +717,13 @@ export function SaleModal({ isOpen, onClose, onSave, sale, onUpdate }: SaleModal
       prev.map(item => {
         if (item.id === itemId) {
           const updatedItem = { ...item, quantity: quantity }
-          // Recalcular total
-          updatedItem.total = quantity * updatedItem.unitPrice
+          updatedItem.total = getItemTotalWithDiscount(updatedItem)
           return updatedItem
         }
         return item
       })
     )
   }
-
 
   const handleSave = (isDraft: boolean = false) => {
     // Validar que hay cliente, productos, método de pago y que todos tengan cantidad > 0
@@ -1158,47 +1183,75 @@ export function SaleModal({ isOpen, onClose, onSave, sale, onUpdate }: SaleModal
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-semibold text-gray-900 dark:text-white text-base mb-1">{item.productName}</h4>
                                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                                  Stock disponible: <span className="font-medium text-gray-700 dark:text-gray-300">{getAvailableStock(item.productId)} unidades</span>
+                                  Ref: {item.productReferenceCode || '—'} · Stock disponible: <span className="font-medium text-gray-700 dark:text-gray-300">{getAvailableStock(item.productId)}</span> unidades
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                    Precio:
-                                  </label>
-                                  <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    value={formatNumber(item.unitPrice)}
-                                    onChange={(e) => {
-                                      const numericValue = parseNumber(e.target.value)
-                                      handleUpdatePrice(item.id, numericValue)
-                                    }}
-                                    onBlur={() => handlePriceBlur(item.id)}
-                                    className={`w-32 h-8 text-sm text-gray-900 dark:text-white border rounded focus:ring-2 focus:ring-[#fce4f0]0 focus:border-[#fce4f0]0 bg-white dark:bg-gray-600 px-2 ${
-                                      (() => {
-                                        const product = findProductById(item.productId)
-                                        if (!product) return false
-                                        let minPrice: number
-                                        if (isMainStore) {
-                                          minPrice = (product.price && product.price > 0) ? product.price : (product.cost || 0)
-                                        } else {
-                                          if (product.price && product.price > 0) {
-                                            minPrice = product.price
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Precio:</label>
+                                    <input
+                                      type="text"
+                                      inputMode="numeric"
+                                      value={formatNumber(item.unitPrice)}
+                                      onChange={(e) => {
+                                        const numericValue = parseNumber(e.target.value)
+                                        handleUpdatePrice(item.id, numericValue)
+                                      }}
+                                      onBlur={() => handlePriceBlur(item.id)}
+                                      className={`w-28 h-8 text-sm text-gray-900 dark:text-white border rounded focus:ring-2 focus:ring-[#fce4f0]0 focus:border-[#fce4f0]0 bg-white dark:bg-gray-600 px-2 ${
+                                        (() => {
+                                          const product = findProductById(item.productId)
+                                          if (!product) return false
+                                          let minPrice: number
+                                          if (isMainStore) {
+                                            minPrice = (product.price && product.price > 0) ? product.price : (product.cost || 0)
                                           } else {
-                                            const cost = product.cost || 0
-                                            minPrice = Math.ceil(cost * (1 + MIN_PROFIT_MARGIN))
+                                            if (product.price && product.price > 0) {
+                                              minPrice = product.price
+                                            } else {
+                                              const cost = product.cost || 0
+                                              minPrice = Math.ceil(cost * (1 + MIN_PROFIT_MARGIN))
+                                            }
                                           }
-                                        }
-                                        return item.unitPrice && item.unitPrice < minPrice
-                                      })()
-                                        ? 'border-red-500 dark:border-red-500'
-                                        : 'border-gray-300 dark:border-gray-500'
-                                    }`}
-                                    step="100"
-                                    placeholder="0"
-                                  />
+                                          return item.unitPrice && item.unitPrice < minPrice
+                                        })()
+                                          ? 'border-red-500 dark:border-red-500'
+                                          : 'border-gray-300 dark:border-gray-500'
+                                      }`}
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-600 pl-3">
+                                    <Percent className="h-4 w-4 text-[#d06a98] dark:text-[#f29fc8]" />
+                                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Descuento:</label>
+                                    <input
+                                      type="text"
+                                      inputMode="numeric"
+                                      value={item.discount && item.discount > 0 ? formatNumber(item.discount) : ''}
+                                      onChange={(e) => {
+                                        const val = parseNumber(e.target.value)
+                                        handleUpdateDiscount(item.id, val, item.discountType || 'percentage')
+                                      }}
+                                      className="w-16 h-8 text-sm text-gray-900 dark:text-white border border-[#f29fc8]/50 dark:border-[#f29fc8]/50 rounded focus:ring-2 focus:ring-[#fce4f0]0 bg-white dark:bg-gray-600 px-2"
+                                      placeholder="0"
+                                    />
+                                    <select
+                                      value={item.discountType || 'percentage'}
+                                      onChange={(e) => handleUpdateDiscount(item.id, item.discount || 0, e.target.value as 'percentage' | 'amount')}
+                                      className="h-8 text-sm border border-gray-300 dark:border-gray-500 rounded focus:ring-2 focus:ring-[#fce4f0]0 bg-white dark:bg-gray-600 text-gray-900 dark:text-white px-1.5"
+                                      title="Tipo: % porcentaje, $ monto fijo"
+                                    >
+                                      <option value="percentage">%</option>
+                                      <option value="amount">$</option>
+                                    </select>
+                                    {item.discount && item.discount > 0 && (
+                                      <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                                        -{formatCurrency(getItemDiscountAmount(item))}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                              <div className="text-right ml-3">
+                              <div className="text-right ml-3 flex-shrink-0">
                                 <div className="text-lg font-bold text-gray-900 dark:text-white">${item.total.toLocaleString()}</div>
                                 <div className="text-sm text-gray-500 dark:text-gray-400">Total</div>
                               </div>

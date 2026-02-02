@@ -700,6 +700,7 @@ export class SalesService {
           quantity: item.quantity,
           unit_price: item.unitPrice,
           discount: item.discount || 0,
+          discount_type: item.discountType || 'amount',
           total: item.total
         }))
 
@@ -709,7 +710,7 @@ export class SalesService {
 
         if (itemsError) {
       // Error silencioso en producción
-          throw itemsError
+            throw itemsError
         }
       }
 
@@ -913,6 +914,7 @@ export class SalesService {
           quantity: item.quantity,
           unit_price: item.unitPrice,
           discount: item.discount || 0,
+          discount_type: item.discountType || 'amount',
           total: item.total
         }))
 
@@ -922,7 +924,7 @@ export class SalesService {
 
         if (itemsError) {
       // Error silencioso en producción
-          throw itemsError
+            throw itemsError
         }
       }
 

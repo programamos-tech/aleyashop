@@ -1291,12 +1291,18 @@ export function SalesTable({
                                 </div>
                               ) : (
                                 <div className="space-y-2">
-                                  {sale.items.map((item) => (
+                                  {sale.items.map((item) => {
+                                    const baseTotal = item.quantity * item.unitPrice
+                                    const discountAmount = item.discountType === 'percentage'
+                                      ? Math.round((baseTotal * (item.discount || 0)) / 100)
+                                      : Math.min(item.discount || 0, baseTotal)
+                                    const hasDiscount = item.discount != null && item.discount > 0
+                                    return (
                                     <div
                                       key={item.id}
                                       className="border rounded-lg p-3 bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600"
                                     >
-                                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                                      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center">
                                         <div className="flex items-center gap-2">
                                           <Package className="h-5 w-5 text-[#f29fc8] dark:text-[#f29fc8]" />
                                           <div>
@@ -1318,9 +1324,24 @@ export function SalesTable({
                                           </div>
                                         </div>
                                         <div>
-                                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Precio Unitario</div>
+                                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Precio Unit.</div>
                                           <div className="text-sm font-semibold text-gray-900 dark:text-white">
                                             {formatCurrency(item.unitPrice)}
+                                          </div>
+                                        </div>
+                                        <div>
+                                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Descuento</div>
+                                          <div className="text-sm">
+                                            {hasDiscount ? (
+                                              <span className="text-red-600 dark:text-red-400 font-medium">
+                                                {item.discountType === 'percentage' ? `${item.discount}%` : formatCurrency(item.discount)}
+                                                {item.discountType === 'percentage' && discountAmount > 0 && (
+                                                  <span className="text-gray-500 dark:text-gray-400 font-normal"> ({formatCurrency(discountAmount)})</span>
+                                                )}
+                                              </span>
+                                            ) : (
+                                              <span className="text-gray-400">-</span>
+                                            )}
                                           </div>
                                         </div>
                                         <div>
@@ -1331,7 +1352,8 @@ export function SalesTable({
                                         </div>
                                       </div>
                                     </div>
-                                  ))}
+                                    )
+                                  })}
                                 </div>
                               )}
                             </div>

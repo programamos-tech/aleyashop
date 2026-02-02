@@ -52,7 +52,7 @@ import { RoleProtectedRoute } from '@/components/auth/role-protected-route'
 import { Sale } from '@/types'
 import { CancelledInvoicesModal } from '@/components/dashboard/cancelled-invoices-modal'
 
-type DateFilter = 'today' | 'specific' | 'all'
+type DateFilter = 'today' | 'range' | 'all'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -60,7 +60,8 @@ export default function DashboardPage() {
   const { totalProducts: totalProductsFromContext, products: productsFromContext, productsLastUpdated } = useProducts()
   const { user } = useAuth()
   const [dateFilter, setDateFilter] = useState<DateFilter>('today')
-  const [specificDate, setSpecificDate] = useState<Date | null>(null)
+  const [rangeStart, setRangeStart] = useState<Date | null>(null)
+  const [rangeEnd, setRangeEnd] = useState<Date | null>(null)
   const [isFiltering, setIsFiltering] = useState(false)
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
   const [availableYears, setAvailableYears] = useState<number[]>([new Date().getFullYear()])
@@ -171,7 +172,7 @@ export default function DashboardPage() {
   }
 
   // Función para cargar datos del dashboard
-  const loadDashboardData = async (showLoading = false, overrideFilter?: DateFilter, overrideSpecificDate?: Date | null, overrideYear?: number) => {
+  const loadDashboardData = async (showLoading = false, overrideFilter?: DateFilter, overrideYear?: number, overrideRangeStart?: Date | null, overrideRangeEnd?: Date | null) => {
     try {
       // Prevenir ejecuciones duplicadas
       if (isRefreshing || isFiltering) {
@@ -197,25 +198,24 @@ export default function DashboardPage() {
       
       // Determinar si necesitamos filtrar por fecha
       // IMPORTANTE: Usar los valores pasados como override, o los del estado si no se pasan
-      // Si no hay override, usar el estado actual, pero asegurar que si dateFilter es 'specific', también necesitamos specificDate
       let currentFilter = overrideFilter !== undefined ? overrideFilter : (isSuperAdmin ? dateFilter : 'today')
       
-      // Si el filtro es 'specific' pero no hay fecha (ni override ni en estado), cambiar a 'today'
-      if (currentFilter === 'specific' && !overrideSpecificDate && !specificDate) {
-        console.warn('⚠️ [DASHBOARD] Filtro "specific" pero no hay fecha, cambiando a "today"')
+      if (currentFilter === 'range' && !overrideRangeStart && !rangeStart) {
+        console.warn('⚠️ [DASHBOARD] Filtro "range" sin fechas, cambiando a "today"')
         currentFilter = 'today'
       }
-      const dateToUse = overrideSpecificDate !== undefined ? overrideSpecificDate : specificDate
       const yearToUse = overrideYear !== undefined ? overrideYear : selectedYear
       const shouldFilterByDate = currentFilter !== 'all'
-      // Pasar specificDate explícitamente para asegurar que se use la fecha correcta
-      const { startDate, endDate } = shouldFilterByDate ? getDateRange(currentFilter, yearToUse, dateToUse) : { startDate: null, endDate: null }
+      const rangeStartToUse = overrideRangeStart !== undefined ? overrideRangeStart : rangeStart
+      const rangeEndToUse = overrideRangeEnd !== undefined ? overrideRangeEnd : rangeEnd
+      const { startDate, endDate } = shouldFilterByDate ? getDateRange(currentFilter, yearToUse, rangeStartToUse, rangeEndToUse) : { startDate: null, endDate: null }
       
       console.log('🔍 [DASHBOARD DEBUG]', {
-        dateFilter, // Estado original
-        currentFilter, // Filtro que vamos a usar (puede ser override)
-        dateToUse: dateToUse?.toISOString(), // Fecha que vamos a usar (puede ser override)
-        yearToUse, // Año que vamos a usar (puede ser override)
+        dateFilter,
+        currentFilter,
+        rangeStart: rangeStartToUse?.toISOString(),
+        rangeEnd: rangeEndToUse?.toISOString(),
+        yearToUse,
         isSuperAdmin,
         shouldFilterByDate,
         startDate: startDate?.toISOString(),
@@ -230,17 +230,9 @@ export default function DashboardPage() {
           endDate: endDate.toISOString()
         })
         
-        // Para la gráfica de tendencia, necesitamos 15 días hacia atrás desde la fecha seleccionada
-        // Calcular el rango extendido para ventas y pagos (solo para gráfica)
+        // Para la gráfica: hoy → 15 días hacia atrás; rango → usar el mismo rango
         let chartStartDate = startDate
-        if (currentFilter === 'specific' && dateToUse) {
-          // Extender 15 días hacia atrás desde la fecha seleccionada
-          const extendedStart = new Date(dateToUse)
-          extendedStart.setDate(extendedStart.getDate() - 14) // 14 días antes + el día seleccionado = 15 días
-          extendedStart.setHours(0, 0, 0, 0)
-          chartStartDate = extendedStart
-        } else if (currentFilter === 'today') {
-          // Para hoy, también extender 15 días hacia atrás
+        if (currentFilter === 'today') {
           const extendedStart = new Date()
           extendedStart.setDate(extendedStart.getDate() - 14)
           extendedStart.setHours(0, 0, 0, 0)
@@ -384,15 +376,15 @@ export default function DashboardPage() {
   // Función para actualización manual del dashboard
   const handleRefresh = () => {
     // Forzar recarga completa de todos los datos, especialmente productos
-    // IMPORTANTE: Preservar el filtro actual (today, specific, all) y la fecha específica si existe
-    setAllProducts([]) // Limpiar productos existentes para forzar recarga
+    setAllProducts([])
     console.log('🔄 [DASHBOARD] Actualizando datos con filtro actual:', {
       dateFilter,
-      specificDate: specificDate?.toISOString(),
+      rangeStart: rangeStart?.toISOString(),
+      rangeEnd: rangeEnd?.toISOString(),
       selectedYear
     })
     // Pasar los parámetros explícitamente para evitar problemas de timing con el estado
-    loadDashboardData(true, dateFilter, specificDate, selectedYear)
+    loadDashboardData(true, dateFilter, selectedYear, rangeStart, rangeEnd)
   }
 
   // Cargar años disponibles al montar
@@ -517,7 +509,7 @@ export default function DashboardPage() {
         // Recargar datos del dashboard para incluir la nueva venta
         // Usar un pequeño delay para asegurar que la venta esté completamente guardada
         const timeoutId = setTimeout(() => {
-          loadDashboardData(false, effectiveDateFilter, specificDate, selectedYear)
+          loadDashboardData(false, effectiveDateFilter, selectedYear, rangeStart, rangeEnd)
         }, 1000) // Aumentar delay a 1 segundo
         
         return () => clearTimeout(timeoutId)
@@ -527,35 +519,39 @@ export default function DashboardPage() {
   }, [sales.length, allSales.length, sales]) // Incluir sales completo para detectar cambios
 
   // Función para obtener fechas de filtro
-  const getDateRange = (filter: DateFilter, year?: number, overrideSpecificDate?: Date | null) => {
+  const getDateRange = (filter: DateFilter, year?: number, rangeStartParam?: Date | null, rangeEndParam?: Date | null) => {
     const now = new Date()
-    const currentYear = now.getFullYear()
     const targetYear = year || selectedYear
-    // Usar la fecha específica pasada como parámetro, o la del estado si no se pasa
-    const dateToUse = overrideSpecificDate !== undefined ? overrideSpecificDate : specificDate
-    
-    let startDate: Date
-    let endDate: Date
+    let startDate: Date | null
+    let endDate: Date | null
 
     switch (filter) {
       case 'today':
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
         endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
         break
-      case 'specific':
-        if (!dateToUse) {
-          console.warn('⚠️ [DASHBOARD] Filtro "specific" pero no hay fecha seleccionada')
+      case 'range': {
+        const start = rangeStartParam ?? rangeStart
+        const end = rangeEndParam ?? rangeEnd
+        if (!start) {
           return { startDate: null, endDate: null }
         }
-        startDate = new Date(dateToUse.getFullYear(), dateToUse.getMonth(), dateToUse.getDate(), 0, 0, 0, 0)
-        endDate = new Date(dateToUse.getFullYear(), dateToUse.getMonth(), dateToUse.getDate(), 23, 59, 59, 999)
+        const s = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0, 0)
+        const e = end && end >= start
+          ? new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999)
+          : new Date(s.getFullYear(), s.getMonth(), s.getDate(), 23, 59, 59, 999)
+        if (e < s) {
+          startDate = new Date(e.getFullYear(), e.getMonth(), e.getDate(), 0, 0, 0, 0)
+          endDate = new Date(s.getFullYear(), s.getMonth(), s.getDate(), 23, 59, 59, 999)
+        } else {
+          startDate = s
+          endDate = e
+        }
         break
+      }
       case 'all':
-        // "Todo el Tiempo" = Año seleccionado completo
-        // Siempre desde 1 enero hasta 31 diciembre del año seleccionado
-        // Sin importar si es el año actual o no
-        startDate = new Date(targetYear, 0, 1, 0, 0, 0, 0) // 1 enero del año
-        endDate = new Date(targetYear, 11, 31, 23, 59, 59, 999) // 31 diciembre del año
+        startDate = new Date(targetYear, 0, 1, 0, 0, 0, 0)
+        endDate = new Date(targetYear, 11, 31, 23, 59, 59, 999)
         break
       default:
         return { startDate: null, endDate: null }
@@ -578,10 +574,7 @@ export default function DashboardPage() {
       }
     }
 
-    // Para filtros específicos (today, specific), los datos YA vienen filtrados del backend
-    // PERO ahora cargamos 15 días para la gráfica, así que necesitamos filtrar solo el día seleccionado para las métricas
-    if (effectiveDateFilter === 'specific' && !specificDate) {
-      // Si es 'specific' pero no hay fecha seleccionada, devolver vacío
+    if (effectiveDateFilter === 'range' && !rangeStart) {
       return {
         sales: [],
         warranties: [],
@@ -590,10 +583,19 @@ export default function DashboardPage() {
       }
     }
 
-    // Para 'today' o 'specific' con fecha, necesitamos filtrar solo el día seleccionado para las métricas
-    // (aunque allSales tiene 15 días para la gráfica)
-    if (effectiveDateFilter === 'today' || (effectiveDateFilter === 'specific' && specificDate)) {
-      const targetDate = effectiveDateFilter === 'today' ? new Date() : new Date(specificDate!)
+    // Para 'range' los datos ya vienen filtrados por el backend (rango completo)
+    if (effectiveDateFilter === 'range') {
+      return {
+        sales: allSales,
+        warranties: allWarranties,
+        credits: allCredits,
+        paymentRecords: allPaymentRecords
+      }
+    }
+
+    // Para 'today' filtrar solo el día actual
+    if (effectiveDateFilter === 'today') {
+      const targetDate = new Date()
       targetDate.setHours(0, 0, 0, 0)
       const nextDay = new Date(targetDate)
       nextDay.setDate(nextDay.getDate() + 1)
@@ -663,7 +665,7 @@ export default function DashboardPage() {
       credits: allCredits,
       paymentRecords: allPaymentRecords
     }
-  }, [allSales, allWarranties, allCredits, allPaymentRecords, effectiveDateFilter, specificDate])
+  }, [allSales, allWarranties, allCredits, allPaymentRecords, effectiveDateFilter, rangeStart])
 
   // Calcular métricas del dashboard
   const metrics = useMemo(() => {
@@ -1228,36 +1230,6 @@ export default function DashboardPage() {
       // No incrementar count para abonos, solo para ventas nuevas
     })
 
-    // Debug detallado para fecha específica
-    if (effectiveDateFilter === 'specific' && specificDate) {
-      const targetDate = getDateKey(specificDate)
-      const chartDataForDate = salesByDay[targetDate]
-      const abonosForDate = validPaymentRecords.filter(p => {
-        const paymentDate = getDateKey(p.paymentDate)
-        return paymentDate === targetDate
-      })
-      console.log('🔍 [DASHBOARD CHART DEBUG] Para fecha específica:', {
-        targetDate,
-        specificDate: specificDate.toISOString(),
-        chartDataForDate,
-        abonosForDate: abonosForDate.map(p => ({
-          paymentDate: p.paymentDate,
-          normalizedDate: getDateKey(p.paymentDate),
-          amount: p.amount,
-          method: p.paymentMethod
-        })),
-        totalAbonosForDate: abonosForDate.reduce((sum, p) => {
-          if (p.paymentMethod === 'cash' || p.paymentMethod === 'transfer') {
-            return sum + p.amount
-          }
-          return sum
-        }, 0),
-        totalRevenue,
-        cashRevenue,
-        transferRevenue
-      })
-    }
-
     // Debug: Verificar que los totales coincidan (tolerancia de 100 por redondeos)
     const totalFromChart = Object.values(salesByDay).reduce((sum, day) => sum + day.amount, 0)
     if (Math.abs(totalFromChart - totalRevenue) > 100) {
@@ -1269,27 +1241,24 @@ export default function DashboardPage() {
     }
 
     // Generar todos los días del período seleccionado
-    // IMPORTANTE: Usar getDateKey() para asegurar que las fechas coincidan con salesByDay
     const generateAllDays = () => {
-      const days = []
+      const days: string[] = []
       const today = new Date()
       
-      if (effectiveDateFilter === 'specific' && specificDate) {
-        // Para fecha específica, mostrar solo ese día
-        const dateStr = getDateKey(specificDate)
-        days.push(dateStr)
-      } else if (effectiveDateFilter === 'today') {
-        // Para hoy, mostrar solo el día actual
-        const dateStr = getDateKey(today)
-        days.push(dateStr)
-      } else {
-        // Para "Todo el Tiempo", mostrar los últimos 30 días
+      if (effectiveDateFilter === 'today') {
+        days.push(getDateKey(today))
+      } else if (effectiveDateFilter === 'range' && rangeStart) {
+        const end = rangeEnd && rangeEnd >= rangeStart ? rangeEnd : rangeStart
+        const start = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate())
+        const endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+        for (let d = new Date(start); d <= endDate; d.setDate(d.getDate() + 1)) {
+          days.push(getDateKey(d))
+        }
+      } else if (effectiveDateFilter === 'all') {
         const startDate = new Date(today)
         startDate.setDate(today.getDate() - 29)
-        
         for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
-          const dateStr = getDateKey(d)
-          days.push(dateStr)
+          days.push(getDateKey(d))
         }
       }
       
@@ -1300,28 +1269,6 @@ export default function DashboardPage() {
     const salesChartData = allDays
       .map(date => {
         const data = salesByDay[date] || { amount: 0, count: 0 }
-        // Debug para fecha específica
-        if (effectiveDateFilter === 'specific' && specificDate) {
-          const expectedDate = getDateKey(specificDate)
-          if (date === expectedDate) {
-            console.log('📊 [DASHBOARD CHART] Datos para fecha específica:', {
-              date,
-              expectedDate,
-              amount: data.amount,
-              totalRevenue,
-              salesByDayKeys: Object.keys(salesByDay),
-              validPaymentRecordsForDate: validPaymentRecords.filter(p => {
-                const paymentDate = getDateKey(p.paymentDate)
-                return paymentDate === date
-              }).map(p => ({
-                date: p.paymentDate,
-                normalizedDate: getDateKey(p.paymentDate),
-                amount: p.amount,
-                method: p.paymentMethod
-              }))
-            })
-          }
-        }
         return { 
           date, 
           amount: data.amount,
@@ -1329,7 +1276,11 @@ export default function DashboardPage() {
           average: data.count > 0 ? data.amount / data.count : 0
         }
       })
-      .filter(day => day.amount > 0) // Solo mostrar días con ventas
+      .filter(day => {
+        // Para semana/mes/año mostrar todos los días del rango; para un día solo los con ventas
+        if (effectiveDateFilter === 'range' || effectiveDateFilter === 'all') return true
+        return day.amount > 0
+      })
 
     const paymentMethodData = [
       { name: 'Efectivo', value: cashRevenue, color: '#f29fc8' },
@@ -1388,7 +1339,7 @@ export default function DashboardPage() {
       paymentMethodData,
       topProductsChart
     }
-  }, [filteredData, allProducts, allClients, allWarranties, allCredits])
+  }, [filteredData, allProducts, allClients, allWarranties, allCredits, effectiveDateFilter, rangeStart, rangeEnd])
 
   // Función helper para formatear moneda con opción de ocultar
   const formatCurrency = (amount: number): string => {
@@ -1412,69 +1363,63 @@ export default function DashboardPage() {
 
   // Obtener etiqueta del filtro de fecha
   const getDateFilterLabel = (filter: DateFilter) => {
-    const labels: { [key: string]: string } = {
-      today: 'Hoy',
-      all: 'Seleccionar Año', // Label genérico para modo año
-      specific: specificDate ? specificDate.toLocaleDateString('es-CO') : 'Fecha Específica'
+    if (filter === 'today') return 'Hoy'
+    if (filter === 'all') return 'Seleccionar Año'
+    if (filter === 'range') {
+      if (!rangeStart) return 'Rango de fechas'
+      const startStr = rangeStart.toLocaleDateString('es-CO')
+      if (!rangeEnd || rangeEnd.getTime() === rangeStart.getTime()) return startStr
+      return `${startStr} - ${rangeEnd.toLocaleDateString('es-CO')}`
     }
-    return labels[filter] || filter
+    return filter
   }
 
   // Función para manejar cambio de filtro con indicador de carga
   const handleFilterChange = async (newFilter: DateFilter) => {
-    if (newFilter === 'specific' && !specificDate) {
-      setDateFilter(newFilter)
-      return
-    }
-    
-    // Siempre recargar datos cuando cambia el filtro (ahora usa filtrado en backend)
     setIsFiltering(true)
     setDateFilter(newFilter)
-    
-    let dateToUse = specificDate
-    let yearToUse = selectedYear
-    
-    if (newFilter !== 'specific') {
-      setSpecificDate(null)
-      dateToUse = null
-    }
-    
-    // Si cambia a "Todo el Tiempo", asegurar que el año seleccionado sea el actual
     if (newFilter === 'all') {
+      setRangeStart(null)
+      setRangeEnd(null)
       const currentYear = new Date().getFullYear()
       setSelectedYear(currentYear)
-      yearToUse = currentYear
+      loadDashboardData(true, newFilter, currentYear).then(() => setIsFiltering(false))
+    } else if (newFilter === 'range') {
+      const today = new Date()
+      setRangeStart(today)
+      setRangeEnd(today)
+      loadDashboardData(true, newFilter, selectedYear, today, today).then(() => setIsFiltering(false))
+    } else {
+      loadDashboardData(true, newFilter, selectedYear, rangeStart, rangeEnd).then(() => setIsFiltering(false))
     }
-    
-    // Recargar datos con el nuevo filtro, pasando los valores directamente para evitar problemas de timing
-    loadDashboardData(true, newFilter, dateToUse, yearToUse).then(() => {
-      setIsFiltering(false)
-    })
   }
 
   // Función para manejar cambio de año
   const handleYearChange = (year: number) => {
     setSelectedYear(year)
     setIsFiltering(true)
-    // Recargar datos con el nuevo año, pasando el año directamente para evitar problemas de timing
-    loadDashboardData(true, dateFilter, specificDate, year).then(() => {
-      setIsFiltering(false)
-    })
+    loadDashboardData(true, dateFilter, year, rangeStart, rangeEnd).then(() => setIsFiltering(false))
   }
 
-  // Función para manejar selección de fecha específica
-  const handleDateSelect = (date: Date | null) => {
-    setSpecificDate(date)
+  const handleRangeStartSelect = (date: Date | null) => {
+    setRangeStart(date)
     if (date) {
+      setRangeEnd(prev => (prev && prev >= date ? prev : date))
       setIsFiltering(true)
-      setDateFilter('specific')
-      // IMPORTANTE: Pasar la fecha directamente para evitar problemas de timing con el estado
-      // Recargar datos del dashboard para la fecha específica usando la fecha que acabamos de seleccionar
-      loadDashboardData(true, 'specific', date).then(() => {
-        setIsFiltering(false)
-      })
-    } else {
-      setIsFiltering(false)
+      const end = !rangeEnd || rangeEnd < date ? date : rangeEnd
+      loadDashboardData(true, 'range', selectedYear, date, end).then(() => setIsFiltering(false))
+    }
+  }
+
+  const handleRangeEndSelect = (date: Date | null) => {
+    setRangeEnd(date)
+    if (date && rangeStart && date < rangeStart) {
+      setRangeStart(date)
+      setIsFiltering(true)
+      loadDashboardData(true, 'range', selectedYear, date, date).then(() => setIsFiltering(false))
+    } else if (date) {
+      setIsFiltering(true)
+      loadDashboardData(true, 'range', selectedYear, rangeStart, date).then(() => setIsFiltering(false))
     }
   }
 
@@ -1587,7 +1532,7 @@ export default function DashboardPage() {
                         onChange={(e) => handleFilterChange(e.target.value as DateFilter)}
                         className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 md:px-3 md:py-2 pr-9 md:pr-8 text-sm md:text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#f29fc8] focus:border-[#f29fc8]"
                       >
-                        {(['today', 'specific', 'all'] as DateFilter[]).map((filter) => (
+                        {(['today', 'range', 'all'] as DateFilter[]).map((filter) => (
                           <option key={filter} value={filter}>
                             {getDateFilterLabel(filter)}
                           </option>
@@ -1622,14 +1567,28 @@ export default function DashboardPage() {
                       </div>
                     )}
 
-                    {/* Calendario para fecha específica */}
-                    {dateFilter === 'specific' && (
-                      <DatePicker
-                        selectedDate={specificDate}
-                        onDateSelect={handleDateSelect}
-                        placeholder="Seleccionar fecha"
-                        className="w-full sm:w-40 text-xs md:text-sm"
-                      />
+                    {/* Rango: fecha inicial y final */}
+                    {dateFilter === 'range' && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">Desde</span>
+                          <DatePicker
+                            selectedDate={rangeStart}
+                            onDateSelect={handleRangeStartSelect}
+                            placeholder="Inicial"
+                            className="w-full sm:w-36 text-xs md:text-sm"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">Hasta</span>
+                          <DatePicker
+                            selectedDate={rangeEnd}
+                            onDateSelect={handleRangeEndSelect}
+                            placeholder="Final"
+                            className="w-full sm:w-36 text-xs md:text-sm"
+                          />
+                        </div>
+                      </div>
                     )}
                   </>
                 ) : (
@@ -1684,8 +1643,8 @@ export default function DashboardPage() {
               <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Total Ingresos</span>
               <p className="text-[10px] md:text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                 {effectiveDateFilter === 'today' ? 'Hoy' : 
-                 effectiveDateFilter === 'specific' ? 'Fecha Específica' : 
-                 'Todos los Períodos'}
+                 effectiveDateFilter === 'all' ? 'Todos los Períodos' : 
+                 getDateFilterLabel(effectiveDateFilter)}
               </p>
             </div>
           </div>
@@ -1721,8 +1680,8 @@ export default function DashboardPage() {
               <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Efectivo</span>
               <p className="text-[10px] md:text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                 {effectiveDateFilter === 'today' ? 'Hoy' : 
-                 effectiveDateFilter === 'specific' ? 'Fecha Específica' : 
-                 'Todos los Períodos'}
+                 effectiveDateFilter === 'all' ? 'Todos los Períodos' : 
+                 getDateFilterLabel(effectiveDateFilter)}
               </p>
             </div>
           </div>
@@ -1747,8 +1706,8 @@ export default function DashboardPage() {
               <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Transferencia</span>
               <p className="text-[10px] md:text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                 {effectiveDateFilter === 'today' ? 'Hoy' : 
-                 effectiveDateFilter === 'specific' ? 'Fecha Específica' : 
-                 'Todos los Períodos'}
+                 effectiveDateFilter === 'all' ? 'Todos los Períodos' : 
+                 getDateFilterLabel(effectiveDateFilter)}
               </p>
             </div>
           </div>
@@ -1776,8 +1735,8 @@ export default function DashboardPage() {
                   <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Facturas Anuladas</span>
                   <p className="text-[10px] md:text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                     {effectiveDateFilter === 'today' ? 'Hoy' : 
-                     effectiveDateFilter === 'specific' ? 'Fecha Específica' : 
-                     'Todos los Períodos'}
+                     effectiveDateFilter === 'all' ? 'Todos los Períodos' : 
+                     getDateFilterLabel(effectiveDateFilter)}
                   </p>
                 </div>
               </div>
@@ -1802,8 +1761,8 @@ export default function DashboardPage() {
                   <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Crédito</span>
                   <p className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
                     {effectiveDateFilter === 'today' ? 'Hoy' : 
-                     effectiveDateFilter === 'specific' ? 'Fecha Específica' : 
-                     'Todos los Períodos'}
+                     effectiveDateFilter === 'all' ? 'Todos los Períodos' : 
+                     getDateFilterLabel(effectiveDateFilter)}
                   </p>
                 </div>
               </div>
@@ -1835,8 +1794,8 @@ export default function DashboardPage() {
                 <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Ganancia Bruta</span>
                 <p className="text-[10px] md:text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                   {effectiveDateFilter === 'today' ? 'Hoy' : 
-                   effectiveDateFilter === 'specific' ? 'Fecha Específica' : 
-                   'Todos los Períodos'}
+                   effectiveDateFilter === 'all' ? 'Todos los Períodos' : 
+                   getDateFilterLabel(effectiveDateFilter)}
                 </p>
               </div>
             </div>
@@ -2039,10 +1998,9 @@ export default function DashboardPage() {
                 
                 // Determinar la fecha de referencia
                 let referenceDate: Date
-                if (effectiveDateFilter === 'specific' && specificDate) {
-                  referenceDate = new Date(specificDate)
+                if (effectiveDateFilter === 'range' && rangeStart) {
+                  referenceDate = new Date(rangeStart)
                 } else {
-                  // Para 'today' o si no hay fecha específica, usar hoy
                   referenceDate = new Date()
                 }
                 referenceDate.setHours(0, 0, 0, 0)
@@ -2290,26 +2248,19 @@ export default function DashboardPage() {
                   return topProducts.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart 
-                        data={topProducts.map(p => ({ name: p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name, profit: p.profit }))}
-                        margin={{ top: 10, right: 10, left: 5, bottom: 40 }}
+                        layout="vertical"
+                        data={topProducts.map(p => ({ name: p.name, profit: p.profit }))}
+                        margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
                       >
                         <defs>
-                          <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                          <linearGradient id="colorProfit" x1="0" y1="0" x2="1" y2="0">
                             <stop offset="5%" stopColor="#d06a98" stopOpacity={0.9}/>
                             <stop offset="95%" stopColor="#c55a88" stopOpacity={0.7}/>
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
                         <XAxis 
-                          dataKey="name"
-                          stroke="#666"
-                          fontSize={11}
-                          tick={{ fontSize: 11 }}
-                          angle={-45}
-                          textAnchor="end"
-                          height={60}
-                        />
-                        <YAxis 
+                          type="number"
                           stroke="#666"
                           fontSize={11}
                           tick={{ fontSize: 11 }}
@@ -2318,6 +2269,15 @@ export default function DashboardPage() {
                             if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`
                             return `$${value}`
                           }}
+                        />
+                        <YAxis 
+                          type="category"
+                          dataKey="name"
+                          stroke="#666"
+                          fontSize={11}
+                          tick={{ fontSize: 11 }}
+                          width={140}
+                          tickFormatter={(value) => value.length > 22 ? value.slice(0, 22) + '…' : value}
                         />
                         <Tooltip 
                           formatter={(value: number) => [
@@ -2334,11 +2294,12 @@ export default function DashboardPage() {
                             borderRadius: '8px',
                             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                           }}
+                          labelFormatter={(label) => label}
                         />
                         <Bar 
                           dataKey="profit" 
                           fill="url(#colorProfit)" 
-                          radius={[4, 4, 0, 0]}
+                          radius={[0, 4, 4, 0]}
                           stroke="#c55a88"
                           strokeWidth={1}
                         />

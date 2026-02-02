@@ -380,23 +380,45 @@ export default function SaleDetailModal({
     setIsLoadingPrint(true)
     
     try {
-      // Crear datos del cliente (usar datos de la venta o valores por defecto)
-      const client: Client = {
+      // Obtener cliente real de la API para tener cédula/documento (si no está cargado)
+      let clientToUse: Client | null = clientData || null
+      if ((!clientToUse || !clientToUse.document || clientToUse.document === 'N/A') && sale.clientId) {
+        const fetched = await ClientsService.getClientById(sale.clientId)
+        if (fetched) clientToUse = fetched
+      }
+
+      const client: Client = clientToUse || {
         id: sale.clientId,
         name: sale.clientName,
         email: 'N/A',
         phone: 'N/A',
-        document: 'N/A',
+        document: '—',
         address: 'N/A',
         city: 'N/A',
         state: 'N/A',
-        type: 'consumidor_final',
+        type: 'cliente',
         creditLimit: 0,
         currentDebt: 0,
+        points: 0,
         status: 'active',
         nit: 'N/A',
         createdAt: sale.createdAt
       }
+
+      // Cédula/documento para la factura (documento o NIT del cliente)
+      const clientDoc = (client.document && client.document !== 'N/A' && client.document !== '—' ? client.document : '') || (client.nit && client.nit !== 'N/A' ? client.nit : '') || '—'
+
+      // Calcular valores (misma estructura que factura grande, sin electrónica)
+      const itemsTotal = sale.items.reduce((sum, item) => {
+        const baseTotal = item.quantity * item.unitPrice
+        const discountAmount = item.discountType === 'percentage' ? (baseTotal * (item.discount || 0)) / 100 : (item.discount || 0)
+        return sum + Math.max(0, baseTotal - discountAmount)
+      }, 0)
+      const subtotalSinIva = Math.round(itemsTotal / 1.19)
+      const iva = itemsTotal - subtotalSinIva
+      const nitFormateado = (config.nit || '901522077').replace(/\D/g, '').replace(/(\d{3})(\d{3})(\d{3})(\d)?/, (_: string, a: string, b: string, c: string, d?: string) => d ? `${a}.${b}.${c}-${d}` : `${a}.${b}.${c}`)
+      const paymentLabel = sale.paymentMethod === 'cash' ? 'Contado (efectivo)' : sale.paymentMethod === 'transfer' ? 'Contado (banco)' : sale.paymentMethod === 'credit' ? 'Crédito' : sale.paymentMethod === 'warranty' ? 'Garantía' : 'Mixto'
+      const facturaTipoLabel = sale.paymentMethod === 'credit' ? 'Factura de CRÉDITO' : 'Factura de CONTADO: ' + (sale.paymentMethod === 'transfer' ? 'Consignación bancaria.' : 'Efectivo.')
 
       // Crear ventana de impresión
       const printWindow = window.open('', '_blank')
@@ -405,7 +427,7 @@ export default function SaleDetailModal({
         return
       }
 
-      // Generar HTML de la factura
+      // Misma estructura: sin logo, fuente estética, info relevante (comprador, cédula, vendedor nombre)
       const invoiceHTML = `
         <!DOCTYPE html>
         <html>
@@ -413,252 +435,98 @@ export default function SaleDetailModal({
           <meta charset="utf-8">
           <title>Factura ${sale.invoiceNumber}</title>
           <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 0; 
-              padding: 20px; 
-              color: #000; 
-              background: #fff;
-            }
-            .invoice-template { 
-              max-width: 800px; 
-              margin: 0 auto; 
-            }
-            .header { 
-              display: flex; 
-              justify-content: space-between; 
-              margin-bottom: 30px; 
-              border-bottom: 2px solid #000; 
-              padding-bottom: 20px; 
-            }
-            .company-info h1 { 
-              font-size: 24px; 
-              margin: 0 0 10px 0; 
-            }
-            .company-info p { 
-              margin: 2px 0; 
-              font-size: 12px; 
-            }
-            .invoice-info { 
-              text-align: right; 
-            }
-            .invoice-info h2 { 
-              font-size: 20px; 
-              margin: 0 0 15px 0; 
-            }
-            .invoice-info p { 
-              margin: 2px 0; 
-              font-size: 12px; 
-            }
-            .section { 
-              margin-bottom: 25px; 
-            }
-            .section h3 { 
-              font-size: 16px; 
-              margin-bottom: 10px; 
-              border-bottom: 1px solid #ccc; 
-              padding-bottom: 5px; 
-            }
-            .client-info { 
-              display: grid; 
-              grid-template-columns: 1fr 1fr; 
-              gap: 20px; 
-            }
-            .client-info p { 
-              margin: 3px 0; 
-              font-size: 12px; 
-            }
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin-bottom: 20px; 
-            }
-            th, td { 
-              border: 1px solid #000; 
-              padding: 8px; 
-              text-align: left; 
-              font-size: 12px; 
-            }
-            th { 
-              background-color: #f0f0f0; 
-              font-weight: bold; 
-            }
-            .summary { 
-              display: flex; 
-              justify-content: flex-end; 
-            }
-            .summary-box { 
-              width: 300px; 
-              border: 1px solid #000; 
-              padding: 15px; 
-            }
-            .summary h3 { 
-              margin: 0 0 10px 0; 
-              font-size: 14px; 
-            }
-            .summary-row { 
-              display: flex; 
-              justify-content: space-between; 
-              margin: 5px 0; 
-              font-size: 12px; 
-            }
-            .total-row { 
-              border-top: 2px solid #000; 
-              padding-top: 10px; 
-              font-weight: bold; 
-              font-size: 14px; 
-            }
-            .footer { 
-              border-top: 2px solid #000; 
-              padding-top: 15px; 
-              text-align: center; 
-              font-size: 11px; 
-              color: #666; 
-            }
-            @media print {
-              body { margin: 0; padding: 10px; }
-              .no-print { display: none !important; }
-            }
+            body { font-family: 'Segoe UI', 'Helvetica Neue', -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 10px; color: #1a1a1a; background: #fff; font-size: 11px; line-height: 1.35; }
+            .ticket { max-width: 320px; margin: 0 auto; color: #1a1a1a !important; }
+            .ticket * { color: #1a1a1a !important; }
+            .header { text-align: center; padding: 8px 0; border-bottom: 1px solid #333; }
+            .company-name { font-size: 15px; font-weight: 700; letter-spacing: 0.3px; margin-bottom: 4px; }
+            .company-info { font-size: 10px; line-height: 1.3; color: #444; }
+            .invoice-type { text-align: center; font-size: 12px; font-weight: 600; padding: 8px 0; border-bottom: 1px solid #ddd; }
+            .invoice-meta { padding: 6px 0; border-bottom: 1px solid #eee; font-size: 11px; }
+            .invoice-meta .row { display: flex; justify-content: space-between; margin: 2px 0; }
+            .section-title { font-weight: 600; font-size: 10px; margin-bottom: 4px; color: #333; text-transform: uppercase; letter-spacing: 0.5px; }
+            .client-block { padding: 6px 0; border-bottom: 1px solid #eee; font-size: 11px; }
+            .client-block .name { font-weight: 600; }
+            .client-block .doc { font-size: 10px; color: #555; margin-top: 2px; }
+            .products-table { width: 100%; border-collapse: collapse; font-size: 10px; margin: 6px 0; border: 1px solid #ddd; }
+            .products-table th { border: 1px solid #ddd; padding: 5px 6px; text-align: left; font-weight: 600; background: #f8f8f8; font-size: 10px; }
+            .products-table td { border: 1px solid #ddd; padding: 4px 6px; }
+            .products-table .col-num { width: 24px; text-align: center; }
+            .products-table .col-dcto { width: 48px; text-align: right; }
+            .products-table .col-valor { width: 72px; text-align: right; font-weight: 600; }
+            .total-eq { font-weight: 700; font-size: 12px; padding: 6px 0; border-bottom: 1px solid #333; }
+            .liquidacion { padding: 6px 0; border-bottom: 1px solid #eee; font-size: 11px; }
+            .liquidacion .row { display: flex; justify-content: space-between; margin: 3px 0; }
+            .valor-total-box { font-weight: 700; font-size: 12px; margin-top: 6px; }
+            .pago-block { padding: 6px 0; border-bottom: 1px solid #eee; font-size: 11px; }
+            .pago-block .row { display: flex; justify-content: space-between; margin: 3px 0; }
+            .vendedor-line { font-weight: 600; padding: 4px 0; font-size: 11px; }
+            .resumen-block { padding: 6px 0; font-size: 10px; color: #555; }
+            .footer { text-align: center; padding: 10px 0; font-size: 11px; font-weight: 600; }
+            @media print { body { margin: 0; padding: 6px; } .ticket { border: none; } .no-print { display: none !important; } }
+            @page { margin: 0; size: 80mm auto; }
+            @media print { @page { margin: 0; size: 80mm auto; } body { margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .ticket { border: none !important; margin: 0 !important; padding: 0 !important; } }
           </style>
         </head>
         <body>
-          <div class="invoice-template">
-            <!-- Header -->
+          <div class="ticket">
             <div class="header">
-              <div class="company-info">
-                ${config.logo ? `<img src="${config.logo}" alt="${config.name}" style="max-width: 80px; max-height: 80px; margin-bottom: 10px; border-radius: 50%; object-fit: cover;" />` : ''}
-                <h1>${config.name}</h1>
-                ${config.nit ? `<p><strong>NIT:</strong> ${config.nit}</p>` : ''}
-                ${config.isIvaResponsible !== false ? `<p><strong>Responsable de IVA</strong></p>` : ''}
-                ${config.address ? `<p><strong>Dirección:</strong> ${config.address}</p>` : ''}
-                ${config.phone ? `<p><strong>Teléfono:</strong> ${config.phone}</p>` : ''}
-                ${config.email ? `<p><strong>Email:</strong> ${config.email}</p>` : ''}
-                ${config.dianResolution ? `<p><strong>${config.dianResolution}</strong></p>` : ''}
-                ${config.numberingRange ? `<p><strong>Rango autorizado:</strong> ${config.numberingRange}</p>` : ''}
-              </div>
-              <div class="invoice-info">
-                <h2>FACTURA DE VENTA</h2>
-                <p><strong>No. Factura:</strong> ${sale.invoiceNumber}</p>
-                <p><strong>Fecha:</strong> ${new Date(sale.createdAt).toLocaleDateString('es-CO')}</p>
-                <p><strong>Hora:</strong> ${new Date(sale.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' })}</p>
-              </div>
+              <div class="company-name">Aleya Shop SAS</div>
+              <div class="company-info">NIT: ${nitFormateado} · Responsables de IVA</div>
             </div>
 
-            <!-- Información del Cliente -->
-            <div class="section">
-              <h3>INFORMACIÓN DEL CLIENTE</h3>
-              <div class="client-info">
-                <div>
-                  <p><strong>Nombre:</strong> ${client.name}</p>
-                  <p><strong>NIT:</strong> ${client.nit || 'N/A'}</p>
-                  <p><strong>Email:</strong> ${client.email || 'N/A'}</p>
-                </div>
-                <div>
-                  <p><strong>Teléfono:</strong> ${client.phone || 'N/A'}</p>
-                  <p><strong>Dirección:</strong> ${client.address || 'N/A'}</p>
-                  <p><strong>Tipo:</strong> ${client.type === 'mayorista' ? 'Mayorista' : client.type === 'minorista' ? 'Minorista' : 'Consumidor Final'}</p>
-                </div>
-              </div>
+            <div class="invoice-type">Factura de venta</div>
+            <div class="invoice-meta">
+              <div class="row"><span>No. ${sale.invoiceNumber}</span><span>${new Date(sale.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span></div>
             </div>
 
-            <!-- Productos -->
-            <div class="section">
-              <h3>DETALLE DE PRODUCTOS</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th style="text-align: center;">Cantidad</th>
-                    <th style="text-align: right;">Precio Unit.</th>
-                    <th style="text-align: center;">Descuento</th>
-                    <th style="text-align: right;">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${sale.items.map(item => {
-                    const baseTotal = item.quantity * item.unitPrice
-                    const discountAmount = item.discountType === 'percentage' 
-                      ? (baseTotal * (item.discount || 0)) / 100 
-                      : (item.discount || 0)
-                    const subtotalAfterDiscount = Math.max(0, baseTotal - discountAmount)
-                    
-                    return `
-                      <tr>
-                        <td>
-                          <div style="font-weight: bold;">${item.productName}</div>
-                          <div style="font-size: 10px; color: #666;">Ref: ${item.productReferenceCode || 'N/A'}</div>
-                        </td>
-                        <td style="text-align: center;">${item.quantity}</td>
-                        <td style="text-align: right;">${formatCurrency(item.unitPrice)}</td>
-                        <td style="text-align: center; color: #d32f2f;">
-                          ${item.discount && item.discount > 0 
-                            ? (item.discountType === 'percentage' ? `${item.discount}%` : formatCurrency(item.discount))
-                            : '-'
-                          }
-                        </td>
-                        <td style="text-align: right; font-weight: bold;">${formatCurrency(subtotalAfterDiscount)}</td>
-                      </tr>
-                    `
-                  }).join('')}
-                </tbody>
-              </table>
+            <div class="client-block">
+              <div class="section-title">Comprador</div>
+              <div class="name">${client.name}</div>
+              <div class="doc">Cédula / Documento: ${clientDoc}</div>
             </div>
 
-            <!-- Resumen Financiero -->
-            <div class="summary">
-              <div class="summary-box">
-                <h3>RESUMEN FINANCIERO</h3>
-                <div class="summary-row">
-                  <span>Subtotal de productos:</span>
-                  <span>${formatCurrency(sale.items.reduce((sum, item) => {
-                    const baseTotal = item.quantity * item.unitPrice
-                    const discountAmount = item.discountType === 'percentage' 
-                      ? (baseTotal * (item.discount || 0)) / 100 
-                      : (item.discount || 0)
-                    return sum + Math.max(0, baseTotal - discountAmount)
-                  }, 0))}</span>
-                </div>
-                ${sale.discount && sale.discount > 0.001 ? `
-                  <div class="summary-row" style="color: #d32f2f;">
-                    <span>Descuento por total:</span>
-                    <span>${sale.discountType === 'percentage' ? `-${sale.discount}%` : `-${formatCurrency(sale.discount)}`}</span>
-                  </div>
-                ` : ''}
-                <div class="summary-row" style="border-top: 1px solid #ccc; padding-top: 5px;">
-                  <span>Subtotal después de descuentos:</span>
-                  <span>${formatCurrency(sale.subtotal)}</span>
-                </div>
-                ${sale.tax && sale.tax > 0 ? `
-                  <div class="summary-row" style="color: #1976d2;">
-                    <span>IVA (19%):</span>
-                    <span>${formatCurrency(sale.tax)}</span>
-                  </div>
-                ` : ''}
-                <div class="summary-row total-row">
-                  <span>TOTAL:</span>
-                  <span>${formatCurrency(sale.total)}</span>
-                </div>
-              </div>
+            <table class="products-table">
+              <thead>
+                <tr>
+                  <th class="col-num">#</th>
+                  <th class="col-desc">Cant. Descripción</th>
+                  <th class="col-dcto">Dcto.</th>
+                  <th class="col-valor">Valor total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sale.items.map((item, idx) => {
+                  const baseTotal = item.quantity * item.unitPrice
+                  const discountAmount = item.discountType === 'percentage' ? (baseTotal * (item.discount || 0)) / 100 : (item.discount || 0)
+                  const valorTotal = Math.max(0, baseTotal - discountAmount)
+                  const dctoStr = item.discount && item.discount > 0 ? (item.discountType === 'percentage' ? `${item.discount}%` : formatCurrency(item.discount)) : '-'
+                  const descripcion = `${item.quantity}  ${item.productName} (Und)`
+                  return `<tr><td class="col-num">${idx + 1}</td><td class="col-desc">${descripcion}</td><td class="col-dcto">${dctoStr}</td><td class="col-valor">${formatCurrency(valorTotal)}</td></tr>`
+                }).join('')}
+              </tbody>
+            </table>
+
+            <div class="total-eq">TOTAL = ${formatCurrency(sale.total)}</div>
+
+            <div class="liquidacion">
+              <div class="section-title">Desglose IVA y total</div>
+              <div class="row"><span>Valor base (sin IVA)</span><span>${formatCurrency(subtotalSinIva)}</span></div>
+              <div class="row"><span>IVA (19%)</span><span>${formatCurrency(iva)}</span></div>
+              <div class="valor-total-box row"><span>Valor total</span><span>${formatCurrency(sale.total)}</span></div>
             </div>
 
-            <!-- Información Adicional -->
-            <div class="section">
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 12px;">
-                <div>
-                  <p><strong>Método de Pago:</strong> ${sale.paymentMethod === 'cash' ? 'Efectivo/Contado' : sale.paymentMethod === 'credit' ? 'Crédito' : sale.paymentMethod === 'transfer' ? 'Transferencia' : sale.paymentMethod === 'warranty' ? 'Garantía' : 'Mixto'}</p>
-                  <p><strong>Estado:</strong> ${sale.status === 'completed' ? 'Completada' : sale.status === 'pending' ? 'Pendiente' : 'Anulada'}</p>
-                </div>
-                <div>
-                  <p><strong>Vendedor:</strong> ${sale.sellerName || 'No especificado'}</p>
-                  ${sale.sellerEmail ? `<p><strong>Email Vendedor:</strong> ${sale.sellerEmail}</p>` : ''}
-                </div>
-              </div>
+            <div class="pago-block">
+              <div class="row"><span>Forma de pago</span><span>${paymentLabel}</span></div>
+              <div class="vendedor-line">Vendedor: ${sale.sellerName || '—'}</div>
             </div>
 
-            <!-- Footer -->
+            <div class="resumen-block">
+              Productos: ${sale.items.length} ítem(s) · IVA incluido
+            </div>
+
             <div class="footer">
-              <p>Esta factura cumple con los requisitos legales establecidos por la DIAN</p>
-              <p>Gracias por su compra - ${config.name}</p>
+              ¡Gracias por su compra! · Aleya Shop
             </div>
           </div>
         </body>

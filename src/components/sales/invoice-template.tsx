@@ -175,6 +175,9 @@ export function InvoiceTemplate({ sale, company, client }: InvoiceTemplateProps)
                     {item.discount && item.discount > 0 ? (
                       <span className="text-red-600">
                         {item.discountType === 'percentage' ? `${item.discount}%` : formatCurrency(item.discount)}
+                        {discountAmount > 0 && (
+                          <span className="text-gray-600 block text-sm">({formatCurrency(discountAmount)})</span>
+                        )}
                       </span>
                     ) : (
                       <span className="text-gray-400">-</span>
