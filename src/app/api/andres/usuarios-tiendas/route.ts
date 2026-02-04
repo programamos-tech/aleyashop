@@ -63,13 +63,19 @@ export async function GET(request: NextRequest) {
 
     const companyRow = companyRes.data as Record<string, unknown> | null
     let app_logo_url = (companyRow?.logo as string | null | undefined) ?? null
-    if (app_logo_url && app_logo_url.startsWith('/')) {
-      try {
-        const base = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
-        app_logo_url = `${base.replace(/\/$/, '')}${app_logo_url}`
-      } catch {
-        // si falla, se deja la ruta relativa
+
+    try {
+      const base = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
+      const baseClean = base.replace(/\/$/, '')
+
+      if (app_logo_url && app_logo_url.startsWith('/')) {
+        app_logo_url = `${baseClean}${app_logo_url}`
+      } else if (!app_logo_url || !app_logo_url.startsWith('http')) {
+        // company_config puede no tener columna logo; usar logo por defecto de la app (public/logo.jpeg)
+        app_logo_url = `${baseClean}/logo.jpeg`
       }
+    } catch {
+      // si falla, se deja como está
     }
 
     const MAIN_STORE_ID = '00000000-0000-0000-0000-000000000001'
