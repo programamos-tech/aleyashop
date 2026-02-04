@@ -20,6 +20,7 @@ import {
   Warehouse,
   ArrowRightLeft,
   CheckCircle,
+  Wallet,
   ChevronDown,
   ChevronRight
 } from 'lucide-react'
@@ -38,6 +39,7 @@ const navigation = [
   { name: 'Clientes', href: '/clients', icon: Users, module: 'clients' },
   { name: 'Ventas', href: '/sales', icon: Receipt, module: 'sales' },
   { name: 'Garantías', href: '/warranties', icon: ShieldCheck, module: 'warranties' },
+  { name: 'Egresos', href: '/egresos', icon: Wallet, module: 'egresos' },
   { name: 'Roles', href: '/roles', icon: Shield, module: 'roles' },
   { name: 'Actividades', href: '/logs', icon: Activity, module: 'logs' },
   { name: 'Perfil', href: '/profile', icon: UserCircle, module: 'dashboard' },
@@ -63,7 +65,7 @@ export function Sidebar({ className, onMobileMenuToggle }: SidebarProps) {
     if (pathname?.startsWith('/inventory')) {
       setExpandedMenus(prev => new Set([...prev, 'Inventario']))
     }
-    if (pathname?.startsWith('/clients') || pathname?.startsWith('/sales') || pathname?.startsWith('/payments') || pathname?.startsWith('/warranties')) {
+    if (pathname?.startsWith('/clients') || pathname?.startsWith('/sales') || pathname?.startsWith('/payments') || pathname?.startsWith('/warranties') || pathname?.startsWith('/egresos')) {
       setExpandedMenus(prev => new Set([...prev, 'Comercial']))
     }
     if (pathname?.startsWith('/stores') || pathname?.startsWith('/roles') || pathname?.startsWith('/logs')) {
@@ -182,6 +184,7 @@ export function Sidebar({ className, onMobileMenuToggle }: SidebarProps) {
                 if (subitem.href === '/sales' && pathname?.startsWith('/sales')) return true
                 if (subitem.href === '/payments' && pathname?.startsWith('/payments')) return true
                 if (subitem.href === '/warranties' && pathname?.startsWith('/warranties')) return true
+                if (subitem.href === '/egresos' && pathname?.startsWith('/egresos')) return true
                 if (subitem.href === '/stores' && pathname?.startsWith('/stores')) return true
                 if (subitem.href === '/roles' && pathname?.startsWith('/roles')) return true
                 if (subitem.href === '/logs' && pathname?.startsWith('/logs')) return true
@@ -195,6 +198,7 @@ export function Sidebar({ className, onMobileMenuToggle }: SidebarProps) {
                 (item.href === '/clients' && pathname?.startsWith('/clients')) ||
                 (item.href === '/sales' && pathname?.startsWith('/sales')) ||
                 (item.href === '/warranties' && pathname?.startsWith('/warranties')) ||
+                (item.href === '/egresos' && pathname?.startsWith('/egresos')) ||
                 (item.href === '/roles' && pathname?.startsWith('/roles')) ||
                 (item.href === '/logs' && pathname?.startsWith('/logs')) ||
                 isSubmenuActive
@@ -265,6 +269,7 @@ export function Sidebar({ className, onMobileMenuToggle }: SidebarProps) {
                               (subitem.href === '/sales' && pathname?.startsWith('/sales')) ||
                               (subitem.href === '/payments' && pathname?.startsWith('/payments')) ||
                               (subitem.href === '/warranties' && pathname?.startsWith('/warranties')) ||
+                              (subitem.href === '/egresos' && pathname?.startsWith('/egresos')) ||
                               (subitem.href === '/stores' && pathname?.startsWith('/stores')) ||
                               (subitem.href === '/roles' && pathname?.startsWith('/roles')) ||
                               (subitem.href === '/logs' && pathname?.startsWith('/logs'))

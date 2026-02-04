@@ -29,6 +29,7 @@ const moduleOptions = [
   { value: 'clients', label: 'Clientes' },
   { value: 'sales', label: 'Ventas' },
   { value: 'warranties', label: 'Garantías' },
+  { value: 'egresos', label: 'Egresos' },
   { value: 'roles', label: 'Roles' },
   { value: 'logs', label: 'Actividades' }
 ]
@@ -52,6 +53,7 @@ const rolePermissions = {
     { module: 'sales', actions: allActions },
     { module: 'payments', actions: allActions },
     { module: 'warranties', actions: allActions },
+    { module: 'egresos', actions: allActions },
     { module: 'roles', actions: allActions },
     { module: 'logs', actions: allActions }
   ],
