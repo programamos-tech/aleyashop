@@ -784,7 +784,9 @@ export default function DashboardPage() {
       .filter(c => c.status === 'pending' || c.status === 'partial')
       .reduce((sum, credit) => sum + (credit.pendingAmount || 0), 0)
 
-    const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
+    // Solo sumar egresos activos (excluir anulados)
+    const activeExpenses = expenses.filter((e: { status?: string }) => e.status !== 'cancelled')
+    const totalExpenses = activeExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
 
     // Calcular el total real de métodos de pago conocidos
     const knownPaymentMethodsTotal = cashRevenue + transferRevenue + creditRevenue

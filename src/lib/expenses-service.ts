@@ -2,6 +2,24 @@ import { supabase } from './supabase'
 import { Expense } from '@/types'
 import { AuthService } from './auth-service'
 
+function mapRowToExpense(expense: any): Expense {
+  return {
+    id: expense.id,
+    storeId: expense.store_id || null,
+    category: expense.category,
+    amount: expense.amount,
+    date: expense.date,
+    paymentMethod: expense.payment_method,
+    notes: expense.notes || '',
+    status: expense.status || 'active',
+    cancelledAt: expense.cancelled_at || null,
+    cancelledBy: expense.cancelled_by || null,
+    cancellationReason: expense.cancellation_reason || null,
+    createdAt: expense.created_at,
+    updatedAt: expense.updated_at
+  }
+}
+
 export class ExpensesService {
   static async getExpensesByDateRange(startDate: Date, endDate: Date): Promise<Expense[]> {
     try {
@@ -18,17 +36,7 @@ export class ExpensesService {
         return []
       }
 
-      return (data || []).map((expense: any) => ({
-        id: expense.id,
-        storeId: expense.store_id || null,
-        category: expense.category,
-        amount: expense.amount,
-        date: expense.date,
-        paymentMethod: expense.payment_method,
-        notes: expense.notes || '',
-        createdAt: expense.created_at,
-        updatedAt: expense.updated_at
-      }))
+      return (data || []).map((expense: any) => mapRowToExpense(expense))
     } catch (error) {
       // Error silencioso en producción
       return []
@@ -48,20 +56,47 @@ export class ExpensesService {
         return []
       }
 
-      return (data || []).map((expense: any) => ({
-        id: expense.id,
-        storeId: expense.store_id || null,
-        category: expense.category,
-        amount: expense.amount,
-        date: expense.date,
-        paymentMethod: expense.payment_method,
-        notes: expense.notes || '',
-        createdAt: expense.created_at,
-        updatedAt: expense.updated_at
-      }))
+      return (data || []).map((expense: any) => mapRowToExpense(expense))
     } catch (error) {
       // Error silencioso en producción
       return []
+    }
+  }
+
+  static async cancelExpense(
+    id: string,
+    cancellationReason: string,
+    currentUserId?: string
+  ): Promise<boolean> {
+    try {
+      const reason = cancellationReason?.trim() || ''
+      if (reason.length < 10) return false
+
+      const { error } = await supabase
+        .from('expenses')
+        .update({
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: currentUserId || null,
+          cancellation_reason: reason,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('status', 'active')
+
+      if (error) return false
+
+      if (currentUserId) {
+        await AuthService.logActivity(
+          currentUserId,
+          'expense_cancel',
+          'egresos',
+          { description: `Egreso anulado: ${id}`, expenseId: id, reason }
+        )
+      }
+      return true
+    } catch (error) {
+      return false
     }
   }
 
@@ -88,17 +123,7 @@ export class ExpensesService {
         return null
       }
 
-      const newExpense: Expense = {
-        id: data.id,
-        storeId: data.store_id || null,
-        category: data.category,
-        amount: data.amount,
-        date: data.date,
-        paymentMethod: data.payment_method,
-        notes: data.notes || '',
-        createdAt: data.created_at,
-        updatedAt: data.updated_at
-      }
+      const newExpense = mapRowToExpense(data)
 
       if (currentUserId) {
         await AuthService.logActivity(
@@ -106,7 +131,7 @@ export class ExpensesService {
           'expense_create',
           'egresos',
           {
-            description: `Nuevo egreso registrado en categoría "${expenseData.category}"`,
+            description: `Nuevo egreso registrado - concepto "${expenseData.category}"`,
             expenseId: newExpense.id,
             category: expenseData.category,
             amount: expenseData.amount,

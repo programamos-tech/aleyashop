@@ -126,10 +126,10 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
   const handleSaveExpense = async () => {
     const finalCategory = (selectedCategory || categorySearch).trim()
     if (!finalCategory) {
-      toast.error('Selecciona una categoría')
+      toast.error('Selecciona un concepto')
       return
     }
-    const amountValue = parseInt(amount, 10)
+    const amountValue = parseInt(amount.replace(/\./g, ''), 10)
     if (!amount || Number.isNaN(amountValue) || amountValue <= 0) {
       toast.error('Ingresa un valor válido')
       return
@@ -178,8 +178,8 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 xl:left-64 bg-white/70 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-none xl:rounded-2xl shadow-2xl w-full h-full xl:h-[calc(98vh-4rem)] xl:w-[calc(100vw-18rem)] xl:max-h-[calc(98vh-4rem)] xl:max-w-[calc(100vw-18rem)] flex flex-col border-0 xl:border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="fixed inset-0 xl:left-56 bg-white/70 dark:bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-none xl:rounded-2xl shadow-2xl w-full h-full xl:h-[calc(98vh-4rem)] xl:w-[calc(100vw-18rem)] xl:max-h-[calc(98vh-4rem)] xl:max-w-[calc(100vw-18rem)] overflow-hidden flex flex-col border-0 xl:border border-gray-200 dark:border-gray-700 relative z-[10000]">
         <div className="flex items-center justify-between p-4 md:p-6 border-b border-[#f29fc8]/50 dark:border-[#d06a98] bg-gradient-to-r from-[#fce4f0] to-[#fce4f0]/50 dark:from-[#f29fc8]/30 dark:to-[#f29fc8]/20 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <div className="h-10 w-10 rounded-lg bg-[#f29fc8] dark:bg-[#e07ab0] flex items-center justify-center">
@@ -217,12 +217,12 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
             <CardContent className="p-4 pt-0 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2" ref={dropdownRef}>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Categoría</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Concepto</label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Buscar categoría..."
+                      placeholder="Buscar concepto..."
                       value={categorySearch}
                       onChange={(event) => {
                         setCategorySearch(event.target.value)
@@ -279,11 +279,14 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
                       inputMode="numeric"
                       placeholder="0"
                       value={amount}
-                      onChange={(event) => setAmount(event.target.value.replace(/[^\d.]/g, ''))}
+                      onChange={(event) => {
+                        const digits = event.target.value.replace(/\D/g, '')
+                        const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+                        setAmount(formatted)
+                      }}
                       className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#f29fc8] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                     />
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Usa números grandes sin separadores.</p>
                 </div>
 
                 <div className="space-y-2">
@@ -307,7 +310,6 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
                       <SelectContent>
                         <SelectItem value="cash">Efectivo</SelectItem>
                         <SelectItem value="transfer">Transferencia</SelectItem>
-                        <SelectItem value="petty-cash">Caja Menor</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
