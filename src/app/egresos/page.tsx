@@ -176,6 +176,12 @@ export default function EgresosPage() {
     })
   }
 
+  /** Parsea fecha YYYY-MM-DD como fecha local (evita desfase por UTC). */
+  const parseLocalDate = (dateOnly: string) => {
+    const [y, m, d] = dateOnly.split('-').map(Number)
+    return new Date(y, (m ?? 1) - 1, d ?? 1)
+  }
+
   const getPaymentMethodBadgeClass = (method: string) => {
     if (method === 'cash') return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
     if (method === 'transfer') return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
@@ -277,7 +283,7 @@ export default function EgresosPage() {
               <div className="space-y-4 p-4 md:p-6">
                 {filteredExpenses.map(expense => {
                   const isExpanded = expandedId === expense.id
-                  const expenseDate = new Date(expense.date).toLocaleDateString('es-CO')
+                  const expenseDate = parseLocalDate(expense.date).toLocaleDateString('es-CO')
                   const expenseTime = expense.createdAt ? new Date(expense.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : '—'
                   return (
                     <Card
@@ -501,7 +507,7 @@ export default function EgresosPage() {
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Anular egreso</h3>
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                {new Date(expenseToCancel.date).toLocaleDateString('es-CO')} — {expenseToCancel.category} — {formatCurrency(expenseToCancel.amount)}
+                {parseLocalDate(expenseToCancel.date).toLocaleDateString('es-CO')} — {expenseToCancel.category} — {formatCurrency(expenseToCancel.amount)}
               </p>
               {hasPendingRequest(expenseToCancel) && (
                 <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
@@ -562,7 +568,7 @@ export default function EgresosPage() {
               <div className="bg-gradient-to-r from-[#fce4f0] to-[#fce4f0]/70 dark:from-[#f29fc8]/30 dark:to-[#f29fc8]/20 border-b border-[#f29fc8]/30 dark:border-[#f29fc8]/40 px-6 py-4">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Solicitar anulación de egreso</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                  {new Date(expenseToRequestCancel.date).toLocaleDateString('es-CO')} — {expenseToRequestCancel.category} — {formatCurrency(expenseToRequestCancel.amount)}
+                  {parseLocalDate(expenseToRequestCancel.date).toLocaleDateString('es-CO')} — {expenseToRequestCancel.category} — {formatCurrency(expenseToRequestCancel.amount)}
                 </p>
               </div>
               <div className="p-6">

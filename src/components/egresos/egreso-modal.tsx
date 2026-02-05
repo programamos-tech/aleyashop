@@ -20,6 +20,7 @@ const OTROS_VALUE = 'Otros'
 
 const defaultCategoryOptions = [
   'Administración',
+  'Anticipo Simple (Impuestos)',
   'Arreglos Locativos',
   'Arriendo',
   'Bolsas Milagros',
@@ -28,6 +29,8 @@ const defaultCategoryOptions = [
   'Domicilios Propios',
   'Flete',
   'Honorarios Contabilidad',
+  'Industria y Comercio (Impuestos)',
+  'Impuestos sobre las ventas (Impuestos)',
   'Intereses y Préstamos',
   'Línea Corporativa',
   'Material/Insumos y Papelería',
@@ -62,7 +65,11 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
   const isOtherSelected = selectedCategory === OTROS_VALUE
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      setSelectedDate(today)
+    } else {
       setCategorySearch('')
       setSelectedCategory('')
       setShowCategoryDropdown(false)

@@ -72,6 +72,7 @@ export default function DashboardPage() {
   
   // Verificar si el usuario puede ver información de créditos (superadmin, admin, vendedor)
   const canViewCredits = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'vendedor'
+  const isVendedor = user?.role === 'vendedor' || user?.role === 'Vendedor' || user?.role === 'vendedora' || user?.role === 'Vendedora'
   
   // Para usuarios no-Super Admin, forzar el filtro a 'today' y mostrar dashboard completo
   const effectiveDateFilter = isSuperAdmin ? dateFilter : 'today'
@@ -1805,6 +1806,33 @@ export default function DashboardPage() {
           )
         ) : null}
 
+        {/* Total Egresos - 4º card para vendedor (misma fila: Ingresos, Efectivo, Transferencia, Egresos) */}
+        {isVendedor && (
+          <div 
+            onClick={() => router.push('/egresos')}
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+                <Wallet className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
+              </div>
+              <div className="text-right">
+                <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Total Egresos</span>
+                <p className="text-[10px] md:text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  {effectiveDateFilter === 'today' ? 'Hoy' : 
+                   effectiveDateFilter === 'all' ? 'Todos los Períodos' : 
+                   getDateFilterLabel(effectiveDateFilter)}
+                </p>
+              </div>
+            </div>
+            <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1">
+              {formatCurrency(metrics.totalExpenses)}
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Gastos registrados en el período
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Segunda fila de métricas - Solo para Super Admin */}
