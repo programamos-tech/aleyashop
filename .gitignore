@@ -47,3 +47,6 @@ database/migrations/
 *.sql
 !supabase/migrations/*.sql
 !supabase/seed.sql
+
+# VS Code workspace files
+*.code-workspace
