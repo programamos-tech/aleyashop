@@ -16,6 +16,8 @@ interface EgresoModalProps {
   onSaved?: () => void
 }
 
+const OTROS_VALUE = 'Otros'
+
 const defaultCategoryOptions = [
   'Administración',
   'Arreglos Locativos',
@@ -29,7 +31,6 @@ const defaultCategoryOptions = [
   'Intereses y Préstamos',
   'Línea Corporativa',
   'Material/Insumos y Papelería',
-  'Otros',
   'Pago por Transacción Milagros',
   'Personal Turnos',
   'Prestaciones Sociales',
@@ -40,7 +41,8 @@ const defaultCategoryOptions = [
   'Servicio Público',
   'Soporte Web Contapyme',
   'Sueldos/Nómina',
-  'Viáticos/Gastos Representación'
+  'Viáticos/Gastos Representación',
+  OTROS_VALUE
 ]
 
 export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
@@ -53,14 +55,18 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [paymentMethod, setPaymentMethod] = useState('')
   const [notes, setNotes] = useState('')
+  const [otherConcept, setOtherConcept] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const isOtherSelected = selectedCategory === OTROS_VALUE
 
   useEffect(() => {
     if (!isOpen) {
       setCategorySearch('')
       setSelectedCategory('')
       setShowCategoryDropdown(false)
+      setOtherConcept('')
       setAmount('')
       setSelectedDate(null)
       setPaymentMethod('')
@@ -124,9 +130,11 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
   }
 
   const handleSaveExpense = async () => {
-    const finalCategory = (selectedCategory || categorySearch).trim()
+    const finalCategory = isOtherSelected
+      ? otherConcept.trim()
+      : (selectedCategory || categorySearch).trim()
     if (!finalCategory) {
-      toast.error('Selecciona un concepto')
+      toast.error(isOtherSelected ? 'Escribe el concepto en "Otros"' : 'Selecciona un concepto')
       return
     }
     const amountValue = parseInt(amount.replace(/\./g, ''), 10)
@@ -143,7 +151,7 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
       return
     }
 
-    if (!categories.some(category => normalizeCategory(category) === normalizeCategory(finalCategory))) {
+    if (!isOtherSelected && !categories.some(category => normalizeCategory(category) === normalizeCategory(finalCategory))) {
       const updatedCategories = [...categories, finalCategory].sort((a, b) =>
         a.localeCompare(b, 'es', { sensitivity: 'base' })
       )
@@ -263,10 +271,24 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
                       </div>
                     )}
                   </div>
-                  {selectedCategory && (
+                  {selectedCategory && !isOtherSelected && (
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       Seleccionado: {selectedCategory}
                     </p>
+                  )}
+                  {isOtherSelected && (
+                    <div className="mt-2">
+                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">
+                        Especificar concepto (Otros)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Escribe el concepto..."
+                        value={otherConcept}
+                        onChange={(e) => setOtherConcept(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#f29fc8] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                      />
+                    </div>
                   )}
                 </div>
 

@@ -146,9 +146,25 @@ export interface Expense {
   status?: 'active' | 'cancelled'
   cancelledAt?: string | null
   cancelledBy?: string | null
+  cancelledByName?: string | null
   cancellationReason?: string | null
+  cancellationRequestedAt?: string | null
+  cancellationRequestedBy?: string | null
+  cancellationRequestedByName?: string | null
+  cancellationRequestReason?: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface Notification {
+  id: string
+  userId: string
+  type: 'expense_cancellation_approved' | 'expense_cancellation_rejected'
+  title: string
+  message?: string | null
+  metadata?: Record<string, unknown> | null
+  readAt?: string | null
+  createdAt: string
 }
 
 export interface Client {

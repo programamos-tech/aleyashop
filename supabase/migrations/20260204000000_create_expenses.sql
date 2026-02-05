@@ -26,9 +26,18 @@ COMMENT ON COLUMN "public"."expenses"."amount" IS 'Valor del egreso en COP (sin 
 COMMENT ON COLUMN "public"."expenses"."payment_method" IS 'Método de pago del egreso';
 COMMENT ON COLUMN "public"."expenses"."notes" IS 'Notas adicionales del egreso';
 
+-- Función para actualizar updated_at en expenses (migración autónoma)
+CREATE OR REPLACE FUNCTION update_expenses_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Trigger para actualizar updated_at automáticamente
 DROP TRIGGER IF EXISTS update_expenses_updated_at ON "public"."expenses";
 CREATE TRIGGER update_expenses_updated_at
     BEFORE UPDATE ON "public"."expenses"
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+    EXECUTE FUNCTION update_expenses_updated_at();

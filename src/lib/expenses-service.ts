@@ -14,7 +14,12 @@ function mapRowToExpense(expense: any): Expense {
     status: expense.status || 'active',
     cancelledAt: expense.cancelled_at || null,
     cancelledBy: expense.cancelled_by || null,
+    cancelledByName: expense.cancelled_by_name || null,
     cancellationReason: expense.cancellation_reason || null,
+    cancellationRequestedAt: expense.cancellation_requested_at || null,
+    cancellationRequestedBy: expense.cancellation_requested_by || null,
+    cancellationRequestedByName: expense.cancellation_requested_by_name || null,
+    cancellationRequestReason: expense.cancellation_request_reason || null,
     createdAt: expense.created_at,
     updatedAt: expense.updated_at
   }
@@ -63,10 +68,79 @@ export class ExpensesService {
     }
   }
 
+  /** Egresos con solicitud de anulación pendiente (para super admin). */
+  static async getPendingCancellationRequests(): Promise<Expense[]> {
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('status', 'active')
+        .not('cancellation_requested_at', 'is', null)
+        .order('cancellation_requested_at', { ascending: false })
+
+      if (error) return []
+      return (data || []).map((expense: any) => mapRowToExpense(expense))
+    } catch (error) {
+      return []
+    }
+  }
+
+  /** Solicitar anulación (cualquier usuario). El super admin verá quién y por qué. */
+  static async requestCancellation(
+    id: string,
+    reason: string,
+    requestedByUserId: string,
+    requestedByName: string
+  ): Promise<boolean> {
+    try {
+      const trimmed = reason?.trim() || ''
+      if (trimmed.length < 10) return false
+
+      const { error } = await supabase
+        .from('expenses')
+        .update({
+          cancellation_requested_at: new Date().toISOString(),
+          cancellation_requested_by: requestedByUserId,
+          cancellation_requested_by_name: requestedByName,
+          cancellation_request_reason: trimmed,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('status', 'active')
+
+      if (error) return false
+      return true
+    } catch (error) {
+      return false
+    }
+  }
+
+  /** Rechazar solicitud de anulación (solo super admin). Limpia los campos de solicitud. */
+  static async rejectCancellationRequest(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .update({
+          cancellation_requested_at: null,
+          cancellation_requested_by: null,
+          cancellation_requested_by_name: null,
+          cancellation_request_reason: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('status', 'active')
+
+      return !error
+    } catch (error) {
+      return false
+    }
+  }
+
   static async cancelExpense(
     id: string,
     cancellationReason: string,
-    currentUserId?: string
+    currentUserId?: string,
+    cancelledByName?: string
   ): Promise<boolean> {
     try {
       const reason = cancellationReason?.trim() || ''
@@ -78,6 +152,7 @@ export class ExpensesService {
           status: 'cancelled',
           cancelled_at: new Date().toISOString(),
           cancelled_by: currentUserId || null,
+          cancelled_by_name: cancelledByName || null,
           cancellation_reason: reason,
           updated_at: new Date().toISOString()
         })

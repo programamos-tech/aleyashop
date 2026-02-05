@@ -1,9 +1,14 @@
 'use client'
 
-export function BetaBanner() {
+interface BetaBannerProps {
+  rightSlot?: React.ReactNode
+}
+
+export function BetaBanner({ rightSlot }: BetaBannerProps) {
   return (
     <div className="w-full bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 py-1.5 px-2 sm:px-4">
-      <div className="max-w-[1920px] mx-auto flex items-center justify-center gap-2">
+      <div className="max-w-[1920px] mx-auto flex items-center justify-between gap-2">
+        <div className="flex items-center justify-center gap-2 flex-1">
         {/* Versión del sistema centrada */}
         <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
           aleyashop 1.0
@@ -23,6 +28,8 @@ export function BetaBanner() {
           <span className="hidden sm:inline">powered by </span>
           <span className="font-medium">programamos.st</span>
         </a>
+        </div>
+        {rightSlot ? <div className="flex items-center shrink-0">{rightSlot}</div> : null}
       </div>
     </div>
   )
