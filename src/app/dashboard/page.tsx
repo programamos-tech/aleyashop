@@ -764,6 +764,17 @@ export default function DashboardPage() {
       .filter(p => p.paymentMethod === 'transfer')
       .reduce((sum, payment) => sum + payment.amount, 0)
 
+    // Descontar egresos activos por método de pago (efectivo y transferencia)
+    const activeExpenses = expenses.filter((e: { status?: string }) => e.status !== 'cancelled')
+    activeExpenses.forEach((expense: { amount?: number; paymentMethod?: string }) => {
+      const amount = expense.amount || 0
+      if (expense.paymentMethod === 'cash') {
+        cashRevenue -= amount
+      } else if (expense.paymentMethod === 'transfer') {
+        transferRevenue -= amount
+      }
+    })
+
     // Calcular domicilios (dinero que NO es ingreso, va para el domiciliario)
     const totalDeliveryFees = activeSales.reduce((sum, sale) => {
       return sum + (sale.isDelivery && sale.deliveryFee ? sale.deliveryFee : 0)
@@ -785,8 +796,7 @@ export default function DashboardPage() {
       .filter(c => c.status === 'pending' || c.status === 'partial')
       .reduce((sum, credit) => sum + (credit.pendingAmount || 0), 0)
 
-    // Solo sumar egresos activos (excluir anulados)
-    const activeExpenses = expenses.filter((e: { status?: string }) => e.status !== 'cancelled')
+    // Total egresos (activeExpenses ya definido arriba para descontar de efectivo/transferencia)
     const totalExpenses = activeExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
 
     // Calcular el total real de métodos de pago conocidos
