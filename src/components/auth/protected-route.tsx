@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { canAccessAllStores } from '@/lib/store-helper'
@@ -15,11 +16,19 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [isMounted, setIsMounted] = useState(false)
+  const [showSkipLink, setShowSkipLink] = useState(false)
 
   // Marcar como montado para evitar errores de hidratación
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  // Si lleva mucho tiempo cargando, mostrar enlace a login
+  useEffect(() => {
+    if (!isMounted || !isLoading) return
+    const t = setTimeout(() => setShowSkipLink(true), 1500)
+    return () => clearTimeout(t)
+  }, [isMounted, isLoading])
 
   useEffect(() => {
     if (isMounted && !isLoading) {
@@ -76,12 +85,25 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
         <div className="text-center">
-          {/* Logo con animación simple */}
           <div className="relative">
             <div className="animate-pulse scale-150">
               <Logo size="lg" showText={false} />
             </div>
           </div>
+          {showSkipLink && (
+            <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
+              ¿Tarda mucho?{' '}
+              <Link
+                href="/login"
+                className="text-[#f29fc8] font-medium underline hover:opacity-80"
+                onClick={() => {
+                  if (typeof window !== 'undefined') window.localStorage.removeItem('aleya_user')
+                }}
+              >
+                Ir a login
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     )

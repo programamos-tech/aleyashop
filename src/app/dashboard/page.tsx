@@ -25,7 +25,8 @@ import {
   Home,
   Crown,
   Eye,
-  EyeOff
+  EyeOff,
+  Wallet
 } from 'lucide-react'
 import { 
   BarChart, 
@@ -49,7 +50,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { getCurrentUserStoreId, isMainStoreUser } from '@/lib/store-helper'
 import { StoresService } from '@/lib/stores-service'
 import { RoleProtectedRoute } from '@/components/auth/role-protected-route'
-import { Sale } from '@/types'
+import { Sale, Expense } from '@/types'
 import { CancelledInvoicesModal } from '@/components/dashboard/cancelled-invoices-modal'
 
 type DateFilter = 'today' | 'range' | 'all'
@@ -80,6 +81,7 @@ export default function DashboardPage() {
   const [allClients, setAllClients] = useState<any[]>([])
   const [allProducts, setAllProducts] = useState<any[]>([])
   const [allPaymentRecords, setAllPaymentRecords] = useState<any[]>([])
+  const [allExpenses, setAllExpenses] = useState<Expense[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -195,6 +197,7 @@ export default function DashboardPage() {
       const { CreditsService } = await import('@/lib/credits-service')
       const { ClientsService } = await import('@/lib/clients-service')
       const { ProductsService } = await import('@/lib/products-service')
+      const { ExpensesService } = await import('@/lib/expenses-service')
       
       // Determinar si necesitamos filtrar por fecha
       // IMPORTANTE: Usar los valores pasados como override, o los del estado si no se pasan
@@ -239,7 +242,7 @@ export default function DashboardPage() {
           chartStartDate = extendedStart
         }
         
-        const [salesResult, warrantiesResult, creditsResult, clientsResult, productsResult, paymentRecordsResult] = await Promise.allSettled([
+        const [salesResult, warrantiesResult, creditsResult, clientsResult, productsResult, paymentRecordsResult, expensesResult] = await Promise.allSettled([
           // Para ventas, usar el rango extendido para la gráfica
           withTimeout(SalesService.getDashboardSales(chartStartDate, endDate), 20000),
           withTimeout(WarrantyService.getWarrantiesByDateRange(startDate, endDate), 15000),
@@ -247,7 +250,8 @@ export default function DashboardPage() {
           withTimeout(ClientsService.getAllClients(), 15000), // Clientes siempre todos
           withTimeout(ProductsService.getAllProductsLegacy(getCurrentUserStoreId()), 15000), // Productos siempre todos
           // Para pagos, usar el rango extendido para la gráfica
-          withTimeout(CreditsService.getPaymentRecordsByDateRange(chartStartDate, endDate), 15000)
+          withTimeout(CreditsService.getPaymentRecordsByDateRange(chartStartDate, endDate), 15000),
+          withTimeout(ExpensesService.getExpensesByDateRange(startDate, endDate), 15000)
         ])
         
         // Procesar resultados
@@ -257,6 +261,7 @@ export default function DashboardPage() {
         const clients = clientsResult.status === 'fulfilled' ? clientsResult.value : []
         const products = productsResult.status === 'fulfilled' ? productsResult.value : []
         const payments = paymentRecordsResult.status === 'fulfilled' ? paymentRecordsResult.value : []
+        const expenses = expensesResult.status === 'fulfilled' ? expensesResult.value : []
         
         const currentStoreId = getCurrentUserStoreId()
         const userFromStorage = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('aleya_user') || '{}') : null
@@ -290,10 +295,11 @@ export default function DashboardPage() {
         setAllClients(clients)
         setAllProducts(products)
         setAllPaymentRecords(payments)
+        setAllExpenses(expenses)
         setLastUpdated(new Date())
         
         // Log de errores si los hay
-        const errors = [salesResult, warrantiesResult, creditsResult, clientsResult, productsResult, paymentRecordsResult]
+        const errors = [salesResult, warrantiesResult, creditsResult, clientsResult, productsResult, paymentRecordsResult, expensesResult]
           .filter(result => result.status === 'rejected')
           .map(result => (result as PromiseRejectedResult).reason)
         
@@ -320,13 +326,14 @@ export default function DashboardPage() {
           hastaISO: endDate.toISOString()
         })
         
-        const [salesResult, warrantiesResult, creditsResult, clientsResult, productsResult, paymentRecordsResult] = await Promise.allSettled([
+        const [salesResult, warrantiesResult, creditsResult, clientsResult, productsResult, paymentRecordsResult, expensesResult] = await Promise.allSettled([
           withTimeout(SalesService.getDashboardSales(startDate, endDate), 30000), // Más tiempo para años completos
           withTimeout(WarrantyService.getWarrantiesByDateRange(startDate, endDate), 20000),
           withTimeout(CreditsService.getAllCredits(), 20000), // SIEMPRE cargar TODOS los créditos para mostrar el total adeudado hasta hoy
           withTimeout(ClientsService.getAllClients(), 15000),
           withTimeout(ProductsService.getAllProductsLegacy(getCurrentUserStoreId()), 15000), // Pasar storeId para filtrar por tienda
-          withTimeout(CreditsService.getPaymentRecordsByDateRange(startDate, endDate), 20000)
+          withTimeout(CreditsService.getPaymentRecordsByDateRange(startDate, endDate), 20000),
+          withTimeout(ExpensesService.getExpensesByDateRange(startDate, endDate), 20000)
         ])
         
         // Procesar resultados
@@ -336,6 +343,7 @@ export default function DashboardPage() {
         const clients = clientsResult.status === 'fulfilled' ? clientsResult.value : []
         const products = productsResult.status === 'fulfilled' ? productsResult.value : []
         const payments = paymentRecordsResult.status === 'fulfilled' ? paymentRecordsResult.value : []
+        const expenses = expensesResult.status === 'fulfilled' ? expensesResult.value : []
         
         console.log('✅ [DASHBOARD] Datos cargados (año', yearToUse, '):', {
           ventas: sales.length,
@@ -350,10 +358,11 @@ export default function DashboardPage() {
         setAllClients(clients)
         setAllProducts(products)
         setAllPaymentRecords(payments)
+        setAllExpenses(expenses)
         setLastUpdated(new Date())
         
         // Log de errores si los hay
-        const errors = [salesResult, warrantiesResult, creditsResult, clientsResult, productsResult, paymentRecordsResult]
+        const errors = [salesResult, warrantiesResult, creditsResult, clientsResult, productsResult, paymentRecordsResult, expensesResult]
           .filter(result => result.status === 'rejected')
           .map(result => (result as PromiseRejectedResult).reason)
         
@@ -570,7 +579,8 @@ export default function DashboardPage() {
         sales: allSales,
         warranties: allWarranties,
         credits: allCredits,
-        paymentRecords: allPaymentRecords
+        paymentRecords: allPaymentRecords,
+        expenses: allExpenses
       }
     }
 
@@ -579,7 +589,8 @@ export default function DashboardPage() {
         sales: [],
         warranties: [],
         credits: [],
-        paymentRecords: []
+        paymentRecords: [],
+        expenses: []
       }
     }
 
@@ -589,7 +600,8 @@ export default function DashboardPage() {
         sales: allSales,
         warranties: allWarranties,
         credits: allCredits,
-        paymentRecords: allPaymentRecords
+        paymentRecords: allPaymentRecords,
+        expenses: allExpenses
       }
     }
 
@@ -648,13 +660,24 @@ export default function DashboardPage() {
         paymentDate.setHours(0, 0, 0, 0)
         return paymentDate.getTime() === targetDate.getTime()
       })
+
+      const formatLocalDateString = (date: Date) => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+
+      const targetDateString = formatLocalDateString(targetDate)
+      const filteredExpenses = allExpenses.filter(expense => expense.date === targetDateString)
       
       // Warranties y credits ya vienen filtrados del backend (solo del día)
       return {
         sales: filteredSales,
         warranties: allWarranties,
         credits: allCredits,
-        paymentRecords: filteredPayments
+        paymentRecords: filteredPayments,
+        expenses: filteredExpenses
       }
     }
 
@@ -663,13 +686,14 @@ export default function DashboardPage() {
       sales: allSales,
       warranties: allWarranties,
       credits: allCredits,
-      paymentRecords: allPaymentRecords
+      paymentRecords: allPaymentRecords,
+      expenses: allExpenses
     }
-  }, [allSales, allWarranties, allCredits, allPaymentRecords, effectiveDateFilter, rangeStart])
+  }, [allSales, allWarranties, allCredits, allPaymentRecords, allExpenses, effectiveDateFilter, rangeStart])
 
   // Calcular métricas del dashboard
   const metrics = useMemo(() => {
-    const { sales, warranties, credits, paymentRecords } = filteredData
+    const { sales, warranties, credits, paymentRecords, expenses } = filteredData
     
     // Ingresos por ventas (nuevas ventas) - excluir canceladas y borradores
     const activeSalesForRevenue = sales.filter(sale => sale.status !== 'cancelled' && sale.status !== 'draft')
@@ -759,6 +783,10 @@ export default function DashboardPage() {
     const creditRevenue = credits
       .filter(c => c.status === 'pending' || c.status === 'partial')
       .reduce((sum, credit) => sum + (credit.pendingAmount || 0), 0)
+
+    // Solo sumar egresos activos (excluir anulados)
+    const activeExpenses = expenses.filter((e: { status?: string }) => e.status !== 'cancelled')
+    const totalExpenses = activeExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
 
     // Calcular el total real de métodos de pago conocidos
     const knownPaymentMethodsTotal = cashRevenue + transferRevenue + creditRevenue
@@ -1301,6 +1329,7 @@ export default function DashboardPage() {
       cashRevenue,
       transferRevenue,
       creditRevenue,
+      totalExpenses,
       knownPaymentMethodsTotal,
       // Desglose IVA (solo sobre productos, sin domicilios)
       totalDeliveryFees,
@@ -1629,7 +1658,7 @@ export default function DashboardPage() {
       </Card>
 
       {/* Métricas principales - 3 o 4 cards según el rol */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 ${user && user.role !== 'vendedor' && user.role !== 'Vendedor' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 md:gap-6 mb-6 md:mb-8`}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         {/* Total Ingresos */}
         <div 
           onClick={() => router.push('/sales')}
@@ -1780,7 +1809,33 @@ export default function DashboardPage() {
 
       {/* Segunda fila de métricas - Solo para Super Admin */}
       {isSuperAdmin && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-10 items-stretch">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-10 items-stretch">
+          {/* Total Egresos */}
+          <div 
+            onClick={() => router.push('/egresos')}
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+                <Wallet className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
+              </div>
+              <div className="text-right">
+                <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Total Egresos</span>
+                <p className="text-[10px] md:text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  {effectiveDateFilter === 'today' ? 'Hoy' : 
+                   effectiveDateFilter === 'all' ? 'Todos los Períodos' : 
+                   getDateFilterLabel(effectiveDateFilter)}
+                </p>
+              </div>
+            </div>
+            <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1">
+              {formatCurrency(metrics.totalExpenses)}
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Gastos registrados en el período
+            </p>
+          </div>
+
           {/* Ganancia Bruta */}
           <div 
             onClick={() => router.push('/sales')}
@@ -1833,6 +1888,11 @@ export default function DashboardPage() {
             <p className="text-xs text-gray-600 dark:text-gray-400">
               Dinero invertido en productos (costo con IVA)
             </p>
+          </div>
+
+          {/* Placeholder para mantener la grilla alineada */}
+          <div className="bg-white/60 dark:bg-gray-800/40 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm flex items-center justify-center text-xs text-gray-400 dark:text-gray-500">
+            —
           </div>
         </div>
       )}

@@ -146,6 +146,10 @@ export function LogsTable({
         return CheckCircle
       case 'login':
         return Users
+      case 'expense_create':
+      case 'expense_update':
+      case 'expense_cancel':
+        return Wallet
        default:
         return Users
     }
@@ -208,6 +212,10 @@ export function LogsTable({
       case 'user_reactivated':
         return 'bg-[#fce4f0] text-[#d06a98] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8]'
       case 'login':
+        return 'bg-[#fce4f0] text-[#d06a98] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8]'
+      case 'expense_create':
+      case 'expense_update':
+      case 'expense_cancel':
         return 'bg-[#fce4f0] text-[#d06a98] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8]'
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
@@ -299,6 +307,12 @@ export function LogsTable({
         return 'Usuario Reactivado'
       case 'login':
         return 'Inicio de Sesión'
+      case 'expense_create':
+        return 'Egreso Creado'
+      case 'expense_update':
+        return 'Egreso Actualizado'
+      case 'expense_cancel':
+        return 'Egreso Anulado'
       default:
         return type || 'Actividad'
     }
@@ -345,6 +359,7 @@ export function LogsTable({
     { value: 'credits', label: 'Créditos' },
     { value: 'warranties', label: 'Garantías' },
     { value: 'transfers', label: 'Transferencias' },
+    { value: 'egresos', label: 'Egresos' },
     { value: 'roles', label: 'Roles' }
   ]
 
@@ -507,6 +522,12 @@ export function LogsTable({
                       if (log.action === 'credit_cancelled') return 'credit_cancelled'
                       return 'credit_create'
                     }
+                    if (log.module === 'egresos') {
+                      if (log.action === 'expense_create') return 'expense_create'
+                      if (log.action === 'expense_update') return 'expense_update'
+                      if (log.action === 'expense_cancel') return 'expense_cancel'
+                      return 'expense_create'
+                    }
                     if (log.module === 'auth') return 'login'
                     return 'roles'
                   }
@@ -570,6 +591,12 @@ export function LogsTable({
                       if (log.action === 'credit_cancelled') return 'Cancelar Crédito'
                       return log.action
                     }
+                    if (log.module === 'egresos') {
+                      if (log.action === 'expense_create') return 'Crear Egreso'
+                      if (log.action === 'expense_update') return 'Actualizar Egreso'
+                      if (log.action === 'expense_cancel') return 'Anular Egreso'
+                      return log.action
+                    }
                     return log.action
                   }
                   
@@ -616,10 +643,10 @@ export function LogsTable({
                         </div>
                       </div>
                       
-                      {log.description && (
+                      {(log.details?.description || log.description) && (
                         <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                          <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2" title={log.description}>
-                            {log.description}
+                          <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2" title={log.details?.description || log.description}>
+                            {log.details?.description || log.description}
                           </p>
                         </div>
                       )}
@@ -757,6 +784,12 @@ export function LogsTable({
                         if (log.action === 'transfer_cancelled') return 'transfer'
                         return 'transfer'
                       }
+                      if (log.module === 'egresos') {
+                        if (log.action === 'expense_create') return 'expense_create'
+                        if (log.action === 'expense_update') return 'expense_update'
+                        if (log.action === 'expense_cancel') return 'expense_cancel'
+                        return 'expense_create'
+                      }
                       return 'roles' // Default
                     }
                     
@@ -791,6 +824,7 @@ export function LogsTable({
                                  log.module === 'sales' ? 'Ventas' :
                                  log.module === 'payments' ? 'Abonos' :
                                  log.module === 'transfers' ? 'Transferencias' :
+                                 log.module === 'egresos' ? 'Egresos' :
                                  log.module === 'logs' ? 'Logs' :
                                  log.module === 'auth' ? 'Login' :
                                  log.module || 'Sistema'}
@@ -893,6 +927,11 @@ export function LogsTable({
                                 log.action === 'credit_completed' ? 'Completar Crédito' :
                                 log.action === 'credit_cancelled' ? 'Cancelar Crédito' :
                                 log.action) :
+                             log.module === 'egresos' ?
+                               (log.action === 'expense_create' ? 'Crear Egreso' :
+                                log.action === 'expense_update' ? 'Actualizar Egreso' :
+                                log.action === 'expense_cancel' ? 'Anular Egreso' :
+                                log.action) :
                              log.action}
                           </div>
                         </td>
@@ -957,6 +996,11 @@ export function LogsTable({
                                      log.action === 'credit_completed' ? `Crédito completado: ${log.details.clientName || 'Cliente'} - Factura: ${log.details.invoiceNumber || 'N/A'}` :
                                      log.action === 'credit_cancelled' ? `Crédito cancelado: ${log.details.clientName || 'Cliente'} - Factura: ${log.details.invoiceNumber || 'N/A'}` :
                                      log.details.description || log.action) :
+                                  log.module === 'egresos' ?
+                                    (log.action === 'expense_create' ? (log.details?.description || `Egreso: ${log.details?.category || ''} - $${(log.details?.amount || 0).toLocaleString('es-CO')}`) :
+                                     log.action === 'expense_update' ? (log.details?.description || `Egreso actualizado`) :
+                                     log.action === 'expense_cancel' ? (log.details?.description || (log.details?.reason ? `Anulado: ${log.details.reason}` : 'Egreso anulado')) :
+                                     log.details?.description || log.action) :
                                   log.module === 'auth' ? 
                                     `Ingresó al sistema` :
                                   log.action) :
@@ -1043,6 +1087,10 @@ export function LogsTable({
                                    log.action === 'credit_completed' ? `Crédito completado: ${log.details.clientName || 'Cliente'} - Factura: ${log.details.invoiceNumber || 'N/A'}` :
                                    log.action === 'credit_cancelled' ? `Crédito cancelado: ${log.details.clientName || 'Cliente'} - Factura: ${log.details.invoiceNumber || 'N/A'}` :
                                    log.details.description || log.action) :
+                                log.module === 'egresos' ?
+                                  (log.details?.description || (log.action === 'expense_create' ? `Egreso: ${log.details?.category || ''} - $${(log.details?.amount || 0).toLocaleString('es-CO')}` :
+                                    log.action === 'expense_update' ? 'Egreso actualizado' :
+                                    log.action === 'expense_cancel' && log.details?.reason ? `Anulado: ${log.details.reason}` : 'Egreso')) :
                                 log.module === 'auth' ? 
                                   `Ingresó al sistema` :
                                 log.action) :

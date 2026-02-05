@@ -160,6 +160,10 @@ export function LogDetailModal({ isOpen, onClose, log }: LogDetailModalProps) {
         return X
       case 'user_reactivated':
         return CheckCircle
+      case 'expense_create':
+      case 'expense_update':
+      case 'expense_cancel':
+        return Wallet
       default:
         return Package
     }
@@ -213,6 +217,10 @@ export function LogDetailModal({ isOpen, onClose, log }: LogDetailModalProps) {
         return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
       case 'credit_cancelled':
         return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+      case 'expense_create':
+      case 'expense_update':
+      case 'expense_cancel':
+        return 'bg-[#fce4f0] text-[#d06a98] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8]'
       case 'roles':
       case 'user_create':
       case 'user_edit':
@@ -335,6 +343,20 @@ export function LogDetailModal({ isOpen, onClose, log }: LogDetailModalProps) {
           return 'Recepción de Transferencia'
         case 'transfer_cancelled':
           return 'Cancelar Transferencia'
+        default:
+          return action
+      }
+    }
+
+    // Manejar acciones específicas de egresos
+    if (module === 'egresos') {
+      switch (action) {
+        case 'expense_create':
+          return 'Crear Egreso'
+        case 'expense_update':
+          return 'Actualizar Egreso'
+        case 'expense_cancel':
+          return 'Anular Egreso'
         default:
           return action
       }
@@ -465,6 +487,12 @@ export function LogDetailModal({ isOpen, onClose, log }: LogDetailModalProps) {
       if (log.action === 'Usuario Desactivado') return 'user_deactivated'
       if (log.action === 'Usuario Reactivado') return 'user_reactivated'
       return 'roles'
+    }
+    if (log.module === 'egresos') {
+      if (log.action === 'expense_create') return 'expense_create'
+      if (log.action === 'expense_update') return 'expense_update'
+      if (log.action === 'expense_cancel') return 'expense_cancel'
+      return 'expense_create'
     }
     return log.type
   }
@@ -2413,6 +2441,45 @@ export function LogDetailModal({ isOpen, onClose, log }: LogDetailModalProps) {
                         </div>
                 </div>
               </div>
+                  )}
+
+                  {/* Detalles específicos para egresos */}
+                  {(log.action === 'expense_create' || log.action === 'expense_update' || log.action === 'expense_cancel') && log.details && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 font-medium text-gray-600 dark:text-gray-400 mb-3">
+                        <Wallet className="h-4 w-4" />
+                        <span>
+                          {log.action === 'expense_create' ? 'Detalles del Egreso' :
+                           log.action === 'expense_update' ? 'Egreso Actualizado' : 'Egreso Anulado'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                        {log.details.description && (
+                          <div className="col-span-2">
+                            <span className="text-gray-600 dark:text-gray-300 text-xs">Descripción:</span>
+                            <div className="text-gray-900 dark:text-white font-medium">{log.details.description}</div>
+                          </div>
+                        )}
+                        {log.details.category != null && (
+                          <div>
+                            <span className="text-gray-600 dark:text-gray-300 text-xs">Concepto:</span>
+                            <div className="text-gray-900 dark:text-white font-medium">{log.details.category}</div>
+                          </div>
+                        )}
+                        {log.details.amount != null && (
+                          <div>
+                            <span className="text-gray-600 dark:text-gray-300 text-xs">Valor:</span>
+                            <div className="text-gray-900 dark:text-white font-bold">${Number(log.details.amount).toLocaleString('es-CO')}</div>
+                          </div>
+                        )}
+                        {log.action === 'expense_cancel' && log.details.reason && (
+                          <div className="col-span-2">
+                            <span className="text-gray-600 dark:text-gray-300 text-xs">Motivo de anulación:</span>
+                            <div className="text-gray-900 dark:text-white font-medium">{log.details.reason}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
 
                   {/* Detalles específicos para abono a crédito */}

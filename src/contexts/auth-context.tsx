@@ -20,41 +20,53 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  // Empezar en false para no bloquear la UI; la comprobación de sesión corre en background
+  const [isLoading, setIsLoading] = useState(false)
 
-  // Verificar sesión al cargar
+  // Verificar sesión en background (no bloquear pantalla)
   useEffect(() => {
+    const AUTH_CHECK_TIMEOUT_MS = 5000
+
     const checkAuth = async () => {
-      if (typeof window !== 'undefined') {
-        const savedUser = localStorage.getItem('aleya_user')
-        if (savedUser) {
-          const userData = JSON.parse(savedUser)
-          // Preservar el storeId del localStorage (puede haber sido cambiado por switchStore)
-          const savedStoreId = userData.storeId
-          
-          // Obtener el usuario actualizado (que incluye sincronización de permisos del rol)
-          const currentUser = await AuthService.getCurrentUser()
-          if (currentUser) {
-            // Preservar el storeId si estaba guardado en localStorage (incluso si es null para tienda principal)
-            // Esto permite mantener la tienda seleccionada al recargar
-            if (savedStoreId !== undefined) {
-              currentUser.storeId = savedStoreId === null ? undefined : savedStoreId
-            }
-            
-            setUser(currentUser)
-            // Actualizar localStorage con el usuario actualizado (incluye permisos sincronizados y storeId preservado)
-            // Convertir undefined a null para que se guarde correctamente en JSON
-            const userToSave = {
-              ...currentUser,
-              storeId: currentUser.storeId === undefined ? null : currentUser.storeId
-            }
-            localStorage.setItem('aleya_user', JSON.stringify(userToSave))
-          } else {
-            localStorage.removeItem('aleya_user')
-          }
-        }
+      if (typeof window === 'undefined') return
+      const savedUser = localStorage.getItem('aleya_user')
+      if (!savedUser) return
+
+      let savedStoreId: string | null | undefined
+      try {
+        const userData = JSON.parse(savedUser)
+        savedStoreId = userData?.storeId
+      } catch {
+        localStorage.removeItem('aleya_user')
+        setUser(null)
+        return
       }
-      setIsLoading(false)
+
+      try {
+        const currentUser = await Promise.race([
+          AuthService.getCurrentUser(),
+          new Promise<null>((_, reject) =>
+            setTimeout(() => reject(new Error('auth_timeout')), AUTH_CHECK_TIMEOUT_MS)
+          )
+        ])
+        if (currentUser) {
+          if (savedStoreId !== undefined) {
+            currentUser.storeId = savedStoreId === null ? undefined : savedStoreId
+          }
+          setUser(currentUser)
+          const userToSave = {
+            ...currentUser,
+            storeId: currentUser.storeId === undefined ? null : currentUser.storeId
+          }
+          localStorage.setItem('aleya_user', JSON.stringify(userToSave))
+        } else {
+          localStorage.removeItem('aleya_user')
+          setUser(null)
+        }
+      } catch (e) {
+        localStorage.removeItem('aleya_user')
+        setUser(null)
+      }
     }
 
     checkAuth()

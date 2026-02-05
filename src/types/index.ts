@@ -135,6 +135,22 @@ export interface Category {
   updatedAt: string
 }
 
+export interface Expense {
+  id: string
+  storeId?: string | null
+  category: string
+  amount: number
+  date: string
+  paymentMethod: string
+  notes?: string
+  status?: 'active' | 'cancelled'
+  cancelledAt?: string | null
+  cancelledBy?: string | null
+  cancellationReason?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Client {
   id: string
   name: string
