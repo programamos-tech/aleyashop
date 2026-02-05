@@ -612,10 +612,16 @@ export class AuthService {
         .eq('is_active', true)
         .single()
 
+      // Solo invalidar sesión cuando la BD dice que no existe o está inactivo (PGRST116 = 0 rows)
+      // Errores de red o timeout no deben cerrar sesión
       if (error || !dbUser) {
-        // Si el usuario no existe o no está activo, limpiar localStorage
-        localStorage.removeItem('aleya_user')
-        return null
+        const isNotFound = error?.code === 'PGRST116'
+        if (isNotFound || !dbUser) {
+          localStorage.removeItem('aleya_user')
+          return null
+        }
+        // Otro tipo de error (red, etc.): no limpiar sesión, lanzar para que el contexto no cierre
+        throw error ?? new Error('getCurrentUser_failed')
       }
 
       // Si el usuario no tiene permisos o tiene permisos vacíos, obtenerlos del rol
@@ -650,8 +656,8 @@ export class AuthService {
         updatedAt: dbUser.updated_at
       }
     } catch (error) {
-      // Error silencioso en producción
-      return null
+      // Re-lanzar para que el contexto distinga "error de red/timeout" (no cerrar sesión)
+      throw error
     }
   }
 }

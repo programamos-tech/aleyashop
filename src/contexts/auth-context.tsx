@@ -23,9 +23,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Empezar en false para no bloquear la UI; la comprobación de sesión corre en background
   const [isLoading, setIsLoading] = useState(false)
 
-  // Verificar sesión en background (no bloquear pantalla)
+  // Verificar sesión en background: restaurar desde localStorage primero para no cerrar en cada recarga
   useEffect(() => {
-    const AUTH_CHECK_TIMEOUT_MS = 5000
+    const AUTH_CHECK_TIMEOUT_MS = 10000
 
     const checkAuth = async () => {
       if (typeof window === 'undefined') return
@@ -33,9 +33,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!savedUser) return
 
       let savedStoreId: string | null | undefined
+      let parsedUser: User | null = null
       try {
         const userData = JSON.parse(savedUser)
         savedStoreId = userData?.storeId
+        // Restaurar usuario desde localStorage de inmediato para no cerrar sesión al recargar
+        if (userData?.id && userData?.email) {
+          parsedUser = {
+            id: userData.id,
+            name: userData.name,
+            email: userData.email,
+            role: userData.role,
+            permissions: userData.permissions ?? [],
+            isActive: userData.isActive ?? true,
+            storeId: userData.storeId === null ? undefined : userData.storeId,
+            lastLogin: userData.lastLogin,
+            createdAt: userData.createdAt,
+            updatedAt: userData.updatedAt
+          }
+          setUser(parsedUser)
+        }
       } catch {
         localStorage.removeItem('aleya_user')
         setUser(null)
@@ -60,12 +77,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           localStorage.setItem('aleya_user', JSON.stringify(userToSave))
         } else {
+          // Solo cerrar sesión cuando la BD dijo que el usuario no existe o está inactivo
           localStorage.removeItem('aleya_user')
           setUser(null)
         }
-      } catch (e) {
-        localStorage.removeItem('aleya_user')
-        setUser(null)
+      } catch (_e) {
+        // Timeout o error de red: no cerrar sesión, mantener usuario restaurado desde localStorage
+        // La sesión solo se invalida cuando getCurrentUser() retorna null (usuario inactivo/no encontrado)
       }
     }
 
