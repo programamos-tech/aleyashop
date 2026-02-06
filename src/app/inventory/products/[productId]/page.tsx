@@ -72,6 +72,8 @@ export default function ProductDetailPage() {
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false)
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     console.log('[PRODUCT DETAIL] useEffect triggered, productId:', productId)
@@ -171,31 +173,28 @@ export default function ProductDetailPage() {
   }
 
   const handleDelete = () => {
+    setDeleteError(null)
     setIsDeleteModalOpen(true)
   }
 
   const confirmDelete = async () => {
     if (!product) return
-    
+    setIsDeleting(true)
+    setDeleteError(null)
     try {
-      console.log('[PRODUCT DETAIL] Starting product deletion:', {
-        productId: product.id,
-        userId: user?.id
-      })
-      
       const result = await ProductsService.deleteProduct(product.id, user?.id)
-      
-      console.log('[PRODUCT DETAIL] Product deletion result:', result)
-      
       if (result.success) {
         toast.success('Producto eliminado exitosamente')
+        setIsDeleteModalOpen(false)
         router.push('/inventory/products')
       } else {
-        toast.error(result.error || 'Error eliminando producto')
+        setDeleteError(result.error || 'Error eliminando producto')
       }
     } catch (error) {
       console.error('[PRODUCT DETAIL] Exception deleting product:', error)
-      toast.error('Error eliminando producto. Por favor, intenta nuevamente.')
+      setDeleteError('Error al eliminar el producto. Intenta de nuevo.')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -918,13 +917,20 @@ export default function ProductDetailPage() {
 
       <ConfirmModal
         isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
+        onClose={() => {
+          if (!isDeleting) {
+            setIsDeleteModalOpen(false)
+            setDeleteError(null)
+          }
+        }}
         onConfirm={confirmDelete}
         title="Eliminar Producto"
-        message={`¿Estás seguro de que quieres eliminar el producto "${product.name}"? Esta acción no se puede deshacer.`}
-        confirmText="Eliminar"
+        message={`¿Estás seguro de que quieres eliminar el producto "${product?.name}"? Esta acción no se puede deshacer.`}
+        confirmText={isDeleting ? 'Eliminando...' : 'Eliminar'}
         cancelText="Cancelar"
         type="danger"
+        confirmDisabled={isDeleting}
+        errorMessage={deleteError ?? undefined}
       />
     </RoleProtectedRoute>
   )

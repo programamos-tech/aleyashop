@@ -20,6 +20,8 @@ export default function ProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false)
@@ -42,19 +44,28 @@ export default function ProductsPage() {
 
   const handleDelete = (product: Product) => {
     setProductToDelete(product)
+    setDeleteError(null)
     setIsDeleteModalOpen(true)
   }
 
   const confirmDelete = async () => {
-    if (productToDelete) {
+    if (!productToDelete) return
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
       const result = await deleteProduct(productToDelete.id)
       if (result.success) {
         toast.success('Producto eliminado exitosamente')
         setIsDeleteModalOpen(false)
         setProductToDelete(null)
       } else {
-        toast.error(result.error || 'Error eliminando producto')
+        setDeleteError(result.error || 'Error eliminando producto')
       }
+    } catch (e) {
+      console.error('[Products] confirmDelete error:', e)
+      setDeleteError('Error al eliminar el producto. Intenta de nuevo.')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -207,15 +218,20 @@ export default function ProductsPage() {
               <ConfirmModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => {
-                  setIsDeleteModalOpen(false)
-                  setProductToDelete(null)
+                  if (!isDeleting) {
+                    setIsDeleteModalOpen(false)
+                    setProductToDelete(null)
+                    setDeleteError(null)
+                  }
                 }}
                 onConfirm={confirmDelete}
                 title="Eliminar Producto"
                 message={`¿Estás seguro de que quieres eliminar el producto "${productToDelete?.name}"? Esta acción no se puede deshacer.`}
-                confirmText="Eliminar"
+                confirmText={isDeleting ? 'Eliminando...' : 'Eliminar'}
                 cancelText="Cancelar"
                 type="danger"
+                confirmDisabled={isDeleting}
+                errorMessage={deleteError ?? undefined}
               />
 
       </div>

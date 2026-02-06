@@ -15,6 +15,9 @@ interface ConfirmModalProps {
   confirmText?: string
   cancelText?: string
   type?: 'danger' | 'warning' | 'info'
+  confirmDisabled?: boolean
+  /** Si está definido, se muestra debajo del mensaje y el botón principal pasa a "Entendido" y cierra */
+  errorMessage?: string
 }
 
 export function ConfirmModal({ 
@@ -25,19 +28,23 @@ export function ConfirmModal({
   message,
   confirmText = 'Confirmar',
   cancelText = 'Cancelar',
-  type = 'danger'
+  type = 'danger',
+  confirmDisabled = false,
+  errorMessage
 }: ConfirmModalProps) {
   if (!isOpen) return null
+
+  const showErrorState = !!errorMessage
 
   const getTypeStyles = () => {
     switch (type) {
       case 'danger':
         return {
-          iconColor: 'text-green-400',
-          iconBg: 'bg-green-900/20',
-          confirmButton: 'bg-green-600 hover:bg-green-700 text-white',
-          borderColor: 'border-green-700',
-          headerBg: 'bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20'
+          iconColor: 'text-[#d06a98] dark:text-[#f29fc8]',
+          iconBg: 'bg-[#fce4f0] dark:bg-[#f29fc8]/20',
+          confirmButton: 'bg-[#f29fc8] hover:bg-[#d06a98] text-white',
+          borderColor: 'border-[#d06a98] dark:border-[#f29fc8]',
+          headerBg: 'bg-[#fce4f0] dark:bg-[#f29fc8]/20'
         }
       case 'warning':
         return {
@@ -57,11 +64,11 @@ export function ConfirmModal({
         }
       default:
         return {
-          iconColor: 'text-green-400',
-          iconBg: 'bg-green-900/20',
-          confirmButton: 'bg-green-600 hover:bg-green-700 text-white',
-          borderColor: 'border-green-700',
-          headerBg: 'bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20'
+          iconColor: 'text-[#d06a98] dark:text-[#f29fc8]',
+          iconBg: 'bg-[#fce4f0] dark:bg-[#f29fc8]/20',
+          confirmButton: 'bg-[#f29fc8] hover:bg-[#d06a98] text-white',
+          borderColor: 'border-[#d06a98] dark:border-[#f29fc8]',
+          headerBg: 'bg-[#fce4f0] dark:bg-[#f29fc8]/20'
         }
     }
   }
@@ -69,8 +76,8 @@ export function ConfirmModal({
   const styles = getTypeStyles()
 
   return (
-    <div className="fixed inset-0 xl:left-64 bg-white/70 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 xl:px-6">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col">
+    <div className="fixed inset-0 xl:left-64 bg-white/70 dark:bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 xl:px-6" onClick={e => e.target === e.currentTarget && !confirmDisabled && onClose()}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className={`flex items-center justify-between p-4 md:p-6 border-b border-gray-200 dark:border-gray-700 ${styles.headerBg} flex-shrink-0`}>
           <div className="flex items-center space-x-3">
@@ -92,22 +99,35 @@ export function ConfirmModal({
         {/* Content */}
         <div className="p-4 md:p-6">
           <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 leading-relaxed">{message}</p>
+          {showErrorState && (
+            <div className="mt-4 p-3 rounded-lg bg-[#fce4f0]/50 dark:bg-[#f29fc8]/10 border border-[#d06a98]/30 dark:border-[#f29fc8]/30">
+              <p className="text-sm text-[#d06a98] dark:text-[#f29fc8] font-medium">
+                {errorMessage}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-end space-x-3 p-4 md:p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
+          {!showErrorState && (
+            <Button
+              type="button"
+              onClick={onClose}
+              variant="outline"
+              className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              disabled={confirmDisabled}
+            >
+              {cancelText}
+            </Button>
+          )}
           <Button
-            onClick={onClose}
-            variant="outline"
-            className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
-            {cancelText}
-          </Button>
-          <Button
-            onClick={onConfirm}
+            type="button"
+            onClick={showErrorState ? onClose : onConfirm}
             className={styles.confirmButton}
+            disabled={confirmDisabled}
           >
-            {confirmText}
+            {showErrorState ? 'Entendido' : confirmText}
           </Button>
         </div>
       </div>

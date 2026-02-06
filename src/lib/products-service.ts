@@ -1011,58 +1011,62 @@ export class ProductsService {
     }
   }
 
-  // Eliminar producto
+  // Eliminar producto (vía API para evitar RLS; solo Super Admin)
   static async deleteProduct(id: string, currentUserId?: string): Promise<{ success: boolean, error?: string }> {
     try {
-      // Obtener información del producto antes de eliminarlo para el log
       const productToDelete = await this.getProductById(id)
       if (!productToDelete) {
         return { success: false, error: 'Producto no encontrado' }
       }
 
-      // Validar que el producto no tenga stock
       const totalStock = (productToDelete.stock?.store || 0) + (productToDelete.stock?.warehouse || 0)
       if (totalStock > 0) {
-        return { 
-          success: false, 
-          error: `No se puede eliminar el producto "${productToDelete.name}" porque tiene ${totalStock} unidad(es) en stock. Debe tener stock en 0 para poder eliminarlo.` 
+        return {
+          success: false,
+          error: `No se puede eliminar el producto "${productToDelete.name}" porque tiene ${totalStock} unidad(es) en stock. Debe tener stock en 0 para poder eliminarlo.`
         }
       }
 
-      const { error } = await supabase
+      if (typeof window !== 'undefined' && currentUserId) {
+        const base = window.location.origin
+        const res = await fetch(`${base}/api/products/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: { 'x-user-id': currentUserId }
+        })
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          return { success: false, error: body?.error || 'Error al eliminar el producto' }
+        }
+        return { success: true }
+      }
+
+      // Fallback servidor: delete con supabase (RLS puede bloquear si no hay header)
+      const { data: deleted, error } = await supabase
         .from('products')
         .delete()
         .eq('id', id)
+        .select('id')
 
-      if (error) {
-      // Error silencioso en producción
-        return { success: false, error: 'Error al eliminar el producto' }
+      if (error) return { success: false, error: 'Error al eliminar el producto' }
+      if (!deleted?.length) {
+        return { success: false, error: 'No se pudo eliminar el producto. Comprueba que tienes permiso (Super Admin).' }
       }
-
-      // Registrar la actividad
       if (currentUserId) {
-        await AuthService.logActivity(
-          currentUserId,
-          'product_delete',
-          'products',
-          {
-            description: `Producto eliminado: ${productToDelete.name}`,
-            productId: id,
-            productName: productToDelete.name,
-            productReference: productToDelete.reference,
-            brand: productToDelete.brand,
-            category: productToDelete.categoryId,
-            price: productToDelete.price,
-            cost: productToDelete.cost,
-            stockStore: productToDelete.stock?.store || 0,
-            stockWarehouse: productToDelete.stock?.warehouse || 0
-          }
-        )
+        await AuthService.logActivity(currentUserId, 'product_delete', 'products', {
+          description: `Producto eliminado: ${productToDelete.name}`,
+          productId: id,
+          productName: productToDelete.name,
+          productReference: productToDelete.reference,
+          brand: productToDelete.brand,
+          category: productToDelete.categoryId,
+          price: productToDelete.price,
+          cost: productToDelete.cost,
+          stockStore: productToDelete.stock?.store || 0,
+          stockWarehouse: productToDelete.stock?.warehouse || 0
+        })
       }
-
       return { success: true }
     } catch (error) {
-      // Error silencioso en producción
       return { success: false, error: 'Error inesperado al eliminar el producto' }
     }
   }

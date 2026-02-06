@@ -10,9 +10,28 @@ let supabase: SupabaseClient
 let supabaseAdmin: SupabaseClient
 
 if (supabaseUrl && supabaseAnonKey) {
-  // Cliente para operaciones del cliente (anon)
-  supabase = createClient(supabaseUrl, supabaseAnonKey)
-  
+  // Custom fetch: enviar x-user-id desde localStorage para que RLS (get_current_user_id / is_superadmin) funcione
+  const customFetch: typeof fetch = (input, init) => {
+    const headers = new Headers(init?.headers as HeadersInit)
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('aleya_user')
+        if (raw) {
+          const user = JSON.parse(raw) as { id?: string }
+          if (user?.id) headers.set('x-user-id', user.id)
+        }
+      } catch {
+        // ignorar si no hay usuario o JSON inválido
+      }
+    }
+    return fetch(input, { ...init, headers })
+  }
+
+  // Cliente para operaciones del cliente (anon) — con header x-user-id para RLS
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { fetch: customFetch }
+  })
+
   // Cliente para operaciones del servidor (service role)
   supabaseAdmin = supabaseServiceKey 
     ? createClient(supabaseUrl, supabaseServiceKey, {
