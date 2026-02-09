@@ -47,3 +47,6 @@ database/migrations/
 *.sql
 !supabase/migrations/*.sql
 !supabase/seed.sql
+
+# Cursor Workspace
+aleyashop.code-workspace

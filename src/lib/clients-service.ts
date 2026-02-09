@@ -4,6 +4,92 @@ import { AuthService } from './auth-service'
 import { getCurrentUserStoreId, canAccessAllStores, getCurrentUser } from './store-helper'
 
 export class ClientsService {
+  static async getClientsByPage(
+    page: number = 1,
+    limit: number = 10,
+    query: string = ''
+  ): Promise<{ clients: Client[], total: number, hasMore: boolean }> {
+    try {
+      const offset = (page - 1) * limit
+      const storeId = getCurrentUserStoreId()
+      const MAIN_STORE_ID = '00000000-0000-0000-0000-000000000001'
+      const search = query.trim()
+
+      let countQuery = supabase
+        .from('clients')
+        .select('*', { count: 'exact', head: true })
+
+      if (search) {
+        countQuery = countQuery.or(
+          `name.ilike.%${search}%,email.ilike.%${search}%,document.ilike.%${search}%,phone.ilike.%${search}%,city.ilike.%${search}%,state.ilike.%${search}%`
+        )
+      }
+
+      if (!storeId || storeId === MAIN_STORE_ID) {
+        countQuery = countQuery.or(`store_id.is.null,store_id.eq.${MAIN_STORE_ID}`)
+      } else {
+        countQuery = countQuery.eq('store_id', storeId)
+      }
+
+      const { count, error: countError } = await countQuery
+
+      if (countError) {
+        // Error silencioso en producción
+        throw countError
+      }
+
+      let dataQuery = supabase
+        .from('clients')
+        .select('*')
+
+      if (search) {
+        dataQuery = dataQuery.or(
+          `name.ilike.%${search}%,email.ilike.%${search}%,document.ilike.%${search}%,phone.ilike.%${search}%,city.ilike.%${search}%,state.ilike.%${search}%`
+        )
+      }
+
+      if (!storeId || storeId === MAIN_STORE_ID) {
+        dataQuery = dataQuery.or(`store_id.is.null,store_id.eq.${MAIN_STORE_ID}`)
+      } else {
+        dataQuery = dataQuery.eq('store_id', storeId)
+      }
+
+      const { data, error } = await dataQuery
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1)
+
+      if (error) {
+        // Error silencioso en producción
+        throw error
+      }
+
+      const clients = (data || []).map((client: any) => ({
+        id: client.id,
+        name: client.name,
+        email: client.email || '',
+        phone: client.phone,
+        document: client.document,
+        address: client.address,
+        referencePoint: client.reference_point || '',
+        city: client.city,
+        state: client.state,
+        type: client.type,
+        creditLimit: client.credit_limit || 0,
+        currentDebt: client.current_debt || 0,
+        status: client.status,
+        storeId: client.store_id || undefined,
+        createdAt: client.created_at
+      }))
+
+      const total = count || 0
+      const hasMore = offset + limit < total
+      return { clients, total, hasMore }
+    } catch (error) {
+      // Error silencioso en producción
+      return { clients: [], total: 0, hasMore: false }
+    }
+  }
+
   // Obtener todos los clientes
   static async getAllClients(): Promise<Client[]> {
     try {

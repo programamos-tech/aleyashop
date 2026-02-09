@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,12 +12,19 @@ import {
   Users,
   Building2,
   User,
-  RefreshCcw
+  RefreshCcw,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { Client } from '@/types'
 
 interface ClientTableProps {
   clients: Client[]
+  currentPage: number
+  totalClients: number
+  loading?: boolean
+  onPageChange: (page: number) => void
+  onSearch: (query: string) => Promise<void>
   onEdit: (client: Client) => void
   onDelete: (client: Client) => void
   onCreate: () => void
@@ -26,6 +33,11 @@ interface ClientTableProps {
 
 export function ClientTable({ 
   clients, 
+  currentPage,
+  totalClients,
+  loading,
+  onPageChange,
+  onSearch,
   onEdit, 
   onDelete, 
   onCreate,
@@ -33,7 +45,7 @@ export function ClientTable({
 }: ClientTableProps) {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState('all')
+  const ITEMS_PER_PAGE = 10
 
   const handleViewClient = (clientId: string) => {
     router.push(`/clients/${clientId}`)
@@ -67,18 +79,22 @@ export function ClientTable({
     return User
   }
 
-  const types = ['all'] // Ya no hay filtro por tipo
+  const isFirstRender = useRef(true)
 
-  const filteredClients = clients.filter(client => {
-    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.phone.includes(searchTerm) ||
-                         client.document.includes(searchTerm) ||
-                         client.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.state.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesType = filterType === 'all' || client.type === filterType
-    return matchesSearch && matchesType
-  })
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    const handleSearch = async () => {
+      await onSearch(searchTerm.trim())
+    }
+    const timeoutId = setTimeout(handleSearch, 300)
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm, onSearch])
+
+  const totalPages = Math.ceil(totalClients / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
 
   return (
     <div className="space-y-6">
@@ -137,6 +153,11 @@ export function ClientTable({
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 md:pl-10 pr-4 py-2 md:py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#fce4f0]0 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
+              {loading && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#f29fc8]"></div>
+                </div>
+              )}
             </div>
 {/* Filtro por tipo eliminado - todos son clientes */}
           </div>
@@ -146,7 +167,7 @@ export function ClientTable({
       {/* Table */}
       <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <CardContent className="p-0">
-          {filteredClients.length === 0 ? (
+          {clients.length === 0 ? (
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
@@ -160,7 +181,7 @@ export function ClientTable({
             <>
               {/* Vista de Tarjetas para Mobile */}
               <div className="md:hidden space-y-3 p-3">
-                {filteredClients.map((client, index) => {
+                {clients.map((client, index) => {
                   const TypeIcon = getTypeIcon(client.type)
                   return (
                     <div
@@ -171,7 +192,9 @@ export function ClientTable({
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">#{index + 1}</span>
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                              #{startIndex + index + 1}
+                            </span>
                             <span className="text-xs font-mono font-semibold text-gray-600 dark:text-gray-300">{client.document}</span>
                           </div>
                           <h3 
@@ -241,7 +264,7 @@ export function ClientTable({
 
               {/* Vista de Cards para Desktop */}
               <div className="hidden md:block space-y-4 p-4 md:p-6">
-                {filteredClients.map((client, index) => {
+                {clients.map((client, index) => {
                   const TypeIcon = getTypeIcon(client.type)
                   return (
                     <Card
@@ -256,9 +279,9 @@ export function ClientTable({
                               <TypeIcon className="h-5 w-5 text-[#f29fc8] dark:text-[#f29fc8] flex-shrink-0" />
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                  <div className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">
-                                    {client.document}
-                                  </div>
+                                <div className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">
+                                  #{startIndex + index + 1} · {client.document}
+                                </div>
                                   {client.status === 'active' && (
                                     <div className="h-4 w-4 rounded-full bg-green-500 flex-shrink-0" title="Activo" />
                                   )}
@@ -327,6 +350,59 @@ export function ClientTable({
                 })}
               </div>
             </>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-1 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 px-4 md:px-6">
+              <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="h-7 w-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+
+              <div className="flex items-center gap-0.5">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  if (
+                    page === 1 ||
+                    page === 2 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => onPageChange(page)}
+                        className={`h-7 w-7 flex items-center justify-center rounded-md text-sm transition-colors ${
+                          currentPage === page
+                            ? 'bg-[#fce4f0] text-[#d06a98] dark:bg-[#f29fc8]/20 dark:text-[#f29fc8] font-medium'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  }
+                  if (page === currentPage - 2 || page === currentPage + 2) {
+                    return (
+                      <span key={page} className="px-1 text-gray-400 dark:text-gray-500 text-sm">
+                        ...
+                      </span>
+                    )
+                  }
+                  return null
+                })}
+              </div>
+
+              <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="h-7 w-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
           )}
         </CardContent>
       </Card>
