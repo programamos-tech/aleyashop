@@ -306,6 +306,8 @@ export interface SaleItem {
   tax?: number
   total: number
   addedAt?: number
+  /** Nuevo stock tras descontar (solo presente al crear/finalizar venta para actualizar UI sin refetch). */
+  stockInfo?: { newStoreStock: number; newWarehouseStock: number }
 }
 
 export interface Credit {

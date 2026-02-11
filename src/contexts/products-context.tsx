@@ -27,6 +27,8 @@ interface ProductsContextType {
   deductStockForSale: (productId: string, quantity: number) => Promise<boolean>
   returnStockFromSale: (productId: string, quantity: number) => Promise<boolean>
   importProductsFromCSV: (products: any[]) => Promise<boolean>
+  /** Actualizar stock en estado local tras crear venta (evita refreshProducts). */
+  updateStockFromSale: (updates: { productId: string; store: number; warehouse: number }[]) => void
 }
 
 const ProductsContext = createContext<ProductsContextType | undefined>(undefined)
@@ -230,6 +232,16 @@ export const ProductsProvider = ({ children }: { children: ReactNode }) => {
     return success
   }
 
+  const updateStockFromSale = useCallback((updates: { productId: string; store: number; warehouse: number }[]) => {
+    if (updates.length === 0) return
+    setProducts(prev => prev.map(p => {
+      const u = updates.find(x => x.productId === p.id)
+      if (!u) return p
+      return { ...p, stock: { ...p.stock, store: u.store, warehouse: u.warehouse } }
+    }))
+    setProductsLastUpdated(Date.now())
+  }, [])
+
   const importProductsFromCSV = async (products: any[]): Promise<boolean> => {
     const success = await ProductsService.importProductsFromCSV(products)
     if (success) {
@@ -259,6 +271,7 @@ export const ProductsProvider = ({ children }: { children: ReactNode }) => {
     adjustStock,
     deductStockForSale,
     returnStockFromSale,
+    updateStockFromSale,
     importProductsFromCSV
   }
 

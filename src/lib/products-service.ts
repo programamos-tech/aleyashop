@@ -1253,7 +1253,122 @@ export class ProductsService {
     }
   }
 
-  // Descontar stock para venta (primero del local, luego de bodega)
+  /** Obtener stock de varios productos en una sola consulta (para tienda principal). */
+  static async getProductsStockByIds(ids: string[]): Promise<Map<string, { warehouse: number, store: number }>> {
+    const map = new Map<string, { warehouse: number, store: number }>()
+    if (ids.length === 0) return map
+    const uniqueIds = [...new Set(ids)]
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, stock_warehouse, stock_store')
+        .in('id', uniqueIds)
+
+      if (error || !data) return map
+      for (const row of data) {
+        map.set(row.id, {
+          warehouse: row.stock_warehouse ?? 0,
+          store: row.stock_store ?? 0
+        })
+      }
+      return map
+    } catch {
+      return map
+    }
+  }
+
+  /**
+   * Descontar stock para varios ítems de una venta en lote: 1 lectura + N actualizaciones en paralelo.
+   * Agrupa por productId (suma cantidades) y valida todo antes de escribir.
+   */
+  static async deductStockForSaleBatch(
+    items: { productId: string, quantity: number, productName?: string }[],
+    _currentUserId?: string
+  ): Promise<{
+    success: boolean
+    stockInfoByProductId?: Record<string, { storeDeduction: number, warehouseDeduction: number, previousStoreStock: number, previousWarehouseStock: number, newStoreStock: number, newWarehouseStock: number }>
+    errorProductName?: string
+  }> {
+    if (items.length === 0) {
+      return { success: true, stockInfoByProductId: {} }
+    }
+    try {
+      // Agrupar por productId sumando cantidades
+      const byProduct = new Map<string, { quantity: number, productName?: string }>()
+      for (const item of items) {
+        const existing = byProduct.get(item.productId)
+        if (existing) {
+          existing.quantity += item.quantity
+        } else {
+          byProduct.set(item.productId, { quantity: item.quantity, productName: item.productName })
+        }
+      }
+      const productIds = [...byProduct.keys()]
+      const stockMap = await this.getProductsStockByIds(productIds)
+
+      const deductions: { productId: string, storeDeduction: number, warehouseDeduction: number, newStore: number, newWarehouse: number, previousStore: number, previousWarehouse: number }[] = []
+      for (const [productId, { quantity }] of byProduct) {
+        const stock = stockMap.get(productId)
+        if (!stock) {
+          return { success: false, errorProductName: byProduct.get(productId)?.productName }
+        }
+        const { warehouse, store } = stock
+        const totalAvailable = warehouse + store
+        if (totalAvailable < quantity) {
+          return { success: false, errorProductName: byProduct.get(productId)?.productName }
+        }
+        let remaining = quantity
+        let storeDeduction = 0
+        let warehouseDeduction = 0
+        if (store > 0 && remaining > 0) {
+          storeDeduction = Math.min(store, remaining)
+          remaining -= storeDeduction
+        }
+        if (remaining > 0) {
+          warehouseDeduction = Math.min(warehouse, remaining)
+        }
+        deductions.push({
+          productId,
+          storeDeduction,
+          warehouseDeduction,
+          newStore: store - storeDeduction,
+          newWarehouse: warehouse - warehouseDeduction,
+          previousStore: store,
+          previousWarehouse: warehouse
+        })
+      }
+
+      // Ejecutar todas las actualizaciones en paralelo
+      const updatePromises = deductions.map(d =>
+        supabase
+          .from('products')
+          .update({ stock_warehouse: d.newWarehouse, stock_store: d.newStore })
+          .eq('id', d.productId)
+      )
+      const results = await Promise.all(updatePromises)
+      const failed = results.some(r => r.error)
+      if (failed) {
+        return { success: false }
+      }
+
+      const stockInfoByProductId: Record<string, { storeDeduction: number, warehouseDeduction: number, previousStoreStock: number, previousWarehouseStock: number, newStoreStock: number, newWarehouseStock: number }> = {}
+      for (const d of deductions) {
+        stockInfoByProductId[d.productId] = {
+          storeDeduction: d.storeDeduction,
+          warehouseDeduction: d.warehouseDeduction,
+          previousStoreStock: d.previousStore,
+          previousWarehouseStock: d.previousWarehouse,
+          newStoreStock: d.newStore,
+          newWarehouseStock: d.newWarehouse
+        }
+      }
+      return { success: true, stockInfoByProductId }
+    } catch {
+      return { success: false }
+    }
+  }
+
+  // Descontar stock para venta (primero del local, luego de bodega) — uso unitario; para ventas usar deductStockForSaleBatch
   static async deductStockForSale(productId: string, quantity: number, currentUserId?: string): Promise<{ success: boolean, stockInfo?: { storeDeduction: number, warehouseDeduction: number, previousStoreStock: number, previousWarehouseStock: number, newStoreStock: number, newWarehouseStock: number } }> {
     try {
       const product = await this.getProductById(productId)

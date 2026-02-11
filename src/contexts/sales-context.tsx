@@ -31,7 +31,7 @@ export function SalesProvider({ children }: { children: ReactNode }) {
   const [totalSales, setTotalSales] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const { user: currentUser } = useAuth()
-  const { refreshProducts, returnStockFromSale } = useProducts()
+  const { refreshProducts, returnStockFromSale, updateStockFromSale } = useProducts()
 
   const fetchSales = useCallback(async (page: number = 1, append: boolean = false) => {
     try {
@@ -69,8 +69,11 @@ export function SalesProvider({ children }: { children: ReactNode }) {
       // Añadir la venta completa al estado (ya viene con todos los datos del getSaleById)
       setSales(prev => [newSale, ...prev])
       
-      // Refrescar productos para actualizar el stock
-      await refreshProducts()
+      // Actualizar stock en estado local sin refetch de todos los productos
+      const stockUpdates = (newSale.items ?? [])
+        .filter((item): item is typeof item & { stockInfo: { newStoreStock: number; newWarehouseStock: number } } => Boolean(item.stockInfo))
+        .map(item => ({ productId: item.productId, store: item.stockInfo.newStoreStock, warehouse: item.stockInfo.newWarehouseStock }))
+      if (stockUpdates.length > 0) updateStockFromSale(stockUpdates)
     } catch (error) {
       // Error silencioso en producción
       throw error

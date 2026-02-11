@@ -33,7 +33,7 @@ interface CreditModalProps {
 
 export function CreditModal({ isOpen, onClose, onCreateCredit }: CreditModalProps) {
   const { clients, getAllClients } = useClients()
-  const { products, searchProducts } = useProducts()
+  const { products, searchProducts, updateStockFromSale } = useProducts()
   const { user } = useAuth()
   
   // Función helper para identificar si un cliente es una tienda
@@ -477,7 +477,11 @@ export function CreditModal({ isOpen, onClose, onCreateCredit }: CreditModalProp
       
       // Crear la venta
       const newSale = await SalesService.createSale(saleData, user?.id || '')
-      
+      const stockUpdates = (newSale.items ?? [])
+        .filter((item): item is typeof item & { stockInfo: { newStoreStock: number; newWarehouseStock: number } } => Boolean(item.stockInfo))
+        .map(item => ({ productId: item.productId, store: item.stockInfo.newStoreStock, warehouse: item.stockInfo.newWarehouseStock }))
+      if (stockUpdates.length > 0) updateStockFromSale(stockUpdates)
+
       // Si NO es borrador, obtener el crédito creado automáticamente por el SalesService
       if (!isDraft) {
         const newCredit = await CreditsService.getCreditByInvoiceNumber(newSale.invoiceNumber)

@@ -652,43 +652,47 @@ export class SalesService {
       }
 
       // Crear los items de la venta y descontar stock (solo si no es borrador)
-      const itemsWithStockInfo: Array<any> = []
+      const itemsWithStockInfo: Array<{ productName: string, productReference?: string, quantity: number, unitPrice: number, totalPrice: number, productId: string, stockInfo?: { newStoreStock: number, newWarehouseStock: number } }> = []
+      let stockInfoByProductId: Record<string, { newStoreStock: number, newWarehouseStock: number }> | undefined
       if (saleData.items && saleData.items.length > 0) {
-        // Si NO es borrador, descontar stock de todos los productos
+        // Si NO es borrador, descontar stock en lote (1 lectura + N updates en paralelo)
         if (saleData.status !== 'draft') {
-          // Primero descontar stock de todos los productos
+          const batchResult = await ProductsService.deductStockForSaleBatch(
+            saleData.items.map(item => ({ productId: item.productId, quantity: item.quantity, productName: item.productName })),
+            currentUserId
+          )
+          if (!batchResult.success || !batchResult.stockInfoByProductId) {
+            await supabase.from('sales').delete().eq('id', sale.id)
+            throw new Error(batchResult.errorProductName
+              ? `No hay suficiente stock para el producto: ${batchResult.errorProductName}`
+              : 'No hay suficiente stock para uno o más productos.')
+          }
+          stockInfoByProductId = Object.fromEntries(
+            Object.entries(batchResult.stockInfoByProductId).map(([id, info]) => [id, { newStoreStock: info.newStoreStock, newWarehouseStock: info.newWarehouseStock }])
+          )
           for (const item of saleData.items) {
-            const stockResult = await ProductsService.deductStockForSale(
-              item.productId, 
-              item.quantity, 
-              currentUserId
-            )
-            
-            if (!stockResult.success || !stockResult.stockInfo) {
-              // Si no se pudo descontar stock, revertir la venta
-              await supabase.from('sales').delete().eq('id', sale.id)
-              throw new Error(`No hay suficiente stock para el producto: ${item.productName}`)
-            }
-
-            // Guardar información del item con su descuento de stock
             itemsWithStockInfo.push({
               productName: item.productName,
               productReference: item.productReferenceCode,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
               totalPrice: item.totalPrice,
-              stockInfo: stockResult.stockInfo
+              productId: item.productId,
+              stockInfo: stockInfoByProductId[item.productId]
             })
           }
         } else {
           // Si es borrador, solo guardar información básica sin descuento de stock
-          itemsWithStockInfo.push(...saleData.items.map(item => ({
-            productName: item.productName,
-            productReference: item.productReferenceCode,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalPrice: item.totalPrice
-          })))
+          for (const item of saleData.items) {
+            itemsWithStockInfo.push({
+              productName: item.productName,
+              productReference: item.productReferenceCode,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              totalPrice: item.totalPrice,
+              productId: item.productId
+            })
+          }
         }
 
         // Si todo el stock se descontó correctamente, crear los items de la venta
@@ -843,6 +847,13 @@ export class SalesService {
         throw new Error('Error al obtener la venta creada')
       }
 
+      // Incluir stockInfo en ítems para que el frontend actualice stock sin refetch de productos
+      if (stockInfoByProductId && completeSale.items) {
+        completeSale.items = completeSale.items.map(it => ({
+          ...it,
+          stockInfo: stockInfoByProductId[it.productId]
+        }))
+      }
       return completeSale
     } catch (error) {
       // Error silencioso en producción
