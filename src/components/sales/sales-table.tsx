@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -90,6 +90,11 @@ export function SalesTable({
   const [deliveryClients, setDeliveryClients] = useState<Record<string, Client>>({})
   const [copiedDelivery, setCopiedDelivery] = useState<string | null>(null)
   const [clientDeliveryCount, setClientDeliveryCount] = useState<Record<string, number>>({})
+  
+  // Memoizar IDs de ventas para evitar loops cuando el array cambia de referencia
+  const salesIds = useMemo(() => sales.map(s => s.id).join(','), [sales])
+  const processedCreditsRef = useRef<Set<string>>(new Set())
+  const processedTransfersRef = useRef<Set<string>>(new Set())
 
   // Cargar créditos para ventas de tipo crédito
   useEffect(() => {
@@ -99,14 +104,17 @@ export function SalesTable({
       
       await Promise.all(
         creditSales.map(async (sale) => {
-          if (!credits[sale.id] && sale.invoiceNumber) {
+          // Solo cargar si no está ya cargado y no se está procesando
+          if (!credits[sale.id] && sale.invoiceNumber && !processedCreditsRef.current.has(sale.id)) {
+            processedCreditsRef.current.add(sale.id)
             try {
               const credit = await CreditsService.getCreditByInvoiceNumber(sale.invoiceNumber)
               if (credit) {
                 creditsToLoad[sale.id] = credit
               }
             } catch (error) {
-              // Error silencioso
+              // Error silencioso - remover del set si falla para permitir reintento manual
+              processedCreditsRef.current.delete(sale.id)
             }
           }
         })
@@ -120,7 +128,7 @@ export function SalesTable({
     if (sales.length > 0) {
       loadCredits()
     }
-  }, [sales])
+  }, [salesIds]) // Usar salesIds en lugar de sales para evitar loops
 
   // Cargar transferencias para ventas de la tienda principal que puedan ser de transferencia entre tiendas
   useEffect(() => {
@@ -133,14 +141,17 @@ export function SalesTable({
       
       await Promise.all(
         mainStoreSales.map(async (sale) => {
-          if (!transfers[sale.id]) {
+          // Solo cargar si no está ya cargado y no se está procesando
+          if (!transfers[sale.id] && !processedTransfersRef.current.has(sale.id)) {
+            processedTransfersRef.current.add(sale.id)
             try {
               const transfer = await StoreStockTransferService.getTransferBySaleId(sale.id)
               if (transfer) {
                 transfersToLoad[sale.id] = transfer
               }
             } catch (error) {
-              // Error silencioso
+              // Error silencioso - remover del set si falla para permitir reintento manual
+              processedTransfersRef.current.delete(sale.id)
             }
           }
         })
@@ -154,7 +165,7 @@ export function SalesTable({
     if (sales.length > 0) {
       loadTransfers()
     }
-  }, [sales])
+  }, [salesIds]) // Usar salesIds en lugar de sales para evitar loops
 
   // Cargar datos de clientes para ventas a domicilio y contar domicilios
   useEffect(() => {

@@ -97,10 +97,10 @@ export default function SaleDetailModal({
       }
     }
     
-    if (isOpen && sale) {
+    if (isOpen && sale?.invoiceNumber) {
       loadCredit()
     }
-  }, [isOpen, sale])
+  }, [isOpen, sale?.paymentMethod, sale?.invoiceNumber]) // Usar propiedades específicas en lugar de sale completo
 
   // Cargar transferencia si la venta es de tipo transferencia
   useEffect(() => {
@@ -108,11 +108,12 @@ export default function SaleDetailModal({
       const MAIN_STORE_ID = '00000000-0000-0000-0000-000000000001'
       // Solo buscar transferencia asociada para ventas de la tienda principal
       // La transferencia se identifica por tener un registro en stock_transfers, no por método de pago
-      if (sale && sale.storeId === MAIN_STORE_ID) {
+      if (sale && sale.storeId === MAIN_STORE_ID && sale.id) {
         try {
           const transferData = await StoreStockTransferService.getTransferBySaleId(sale.id)
           setTransfer(transferData)
         } catch (error) {
+          // Si es 404 o no hay transferencia, guardar null y no reintentar
           setTransfer(null)
         }
       } else {
@@ -120,10 +121,10 @@ export default function SaleDetailModal({
       }
     }
     
-    if (isOpen && sale) {
+    if (isOpen && sale?.id) {
       loadTransfer()
     }
-  }, [isOpen, sale])
+  }, [isOpen, sale?.id, sale?.storeId]) // Usar sale?.id en lugar de sale completo para evitar loops
 
   // Función helper para generar ID del crédito
   const getCreditId = (credit: Credit): string => {
