@@ -381,9 +381,9 @@ export default function SaleDetailModal({
     setIsLoadingPrint(true)
     
     try {
-      // Obtener cliente real de la API para tener cédula/documento (si no está cargado)
+      // Siempre cargar cliente desde API cuando hay clientId, para tener dirección/teléfono/referencia al imprimir
       let clientToUse: Client | null = clientData || null
-      if ((!clientToUse || !clientToUse.document || clientToUse.document === 'N/A') && sale.clientId) {
+      if (sale.clientId) {
         const fetched = await ClientsService.getClientById(sale.clientId)
         if (fetched) clientToUse = fetched
       }
@@ -521,6 +521,17 @@ export default function SaleDetailModal({
               <div class="row"><span>Forma de pago</span><span>${paymentLabel}</span></div>
               <div class="vendedor-line">Vendedor: ${sale.sellerName || '—'}</div>
             </div>
+            ${(sale.clientId || sale.clientName) ? `
+            <div class="domicilio-block" style="padding: 8px 0; border-top: 1px solid #333; margin-top: 6px;">
+              <div class="section-title">Entrega a domicilio</div>
+              <div style="font-size: 11px; line-height: 1.4;">
+                <div><strong>Nombre:</strong> ${client.name || sale.clientName || '—'}</div>
+                <div><strong>Dirección:</strong> ${(client.address && client.address !== 'N/A') ? client.address : '—'}</div>
+                <div><strong>Teléfono:</strong> ${(client.phone && client.phone !== 'N/A') ? client.phone : '—'}</div>
+                <div><strong>Punto de referencia:</strong> ${(client.referencePoint && client.referencePoint.trim() !== '') ? client.referencePoint : '—'}</div>
+              </div>
+            </div>
+            ` : ''}
 
             <div class="resumen-block">
               Productos: ${sale.items.length} ítem(s) · IVA incluido

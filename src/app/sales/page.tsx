@@ -157,21 +157,25 @@ export default function SalesPage() {
         }
       }
 
-      // Obtener cliente real de la API para tener cédula/documento
+      // Obtener cliente real de la API para cédula/documento y datos de domicilio
+      let fullClient: Awaited<ReturnType<typeof ClientsService.getClientById>> = null
       let clientDoc = ''
       if (sale.clientId) {
-        const fullClient = await ClientsService.getClientById(sale.clientId)
+        fullClient = await ClientsService.getClientById(sale.clientId)
         if (fullClient) {
           clientDoc = (fullClient.document && fullClient.document !== 'N/A' ? fullClient.document : '') || (fullClient.nit && fullClient.nit !== 'N/A' ? fullClient.nit : '') || ''
         }
       }
 
-      // Datos del cliente para la factura (nombre de la venta, documento de la API)
+      // Datos del cliente para la factura (nombre, documento y opcionalmente domicilio)
       const client = {
         id: sale.clientId,
         name: sale.clientName,
         document: clientDoc || '—',
-        nit: ''
+        nit: '',
+        address: fullClient?.address ?? '—',
+        phone: fullClient?.phone ?? '—',
+        referencePoint: fullClient?.referencePoint ?? ''
       }
 
       // Crear ventana de impresión
@@ -298,6 +302,18 @@ export default function SalesPage() {
               <div class="row"><span>Forma de pago</span><span>${paymentLabel}</span></div>
               <div class="vendedor-line">Vendedor: ${sale.sellerName || '—'}</div>
             </div>
+
+            ${(sale.clientId || sale.clientName) ? `
+            <div class="domicilio-block" style="padding: 8px 0; border-top: 1px solid #333; margin-top: 6px;">
+              <div class="section-title">Entrega a domicilio</div>
+              <div style="font-size: 11px; line-height: 1.4;">
+                <div><strong>Nombre:</strong> ${client.name || '—'}</div>
+                <div><strong>Dirección:</strong> ${(client.address && client.address !== 'N/A') ? client.address : '—'}</div>
+                <div><strong>Teléfono:</strong> ${(client.phone && client.phone !== 'N/A') ? client.phone : '—'}</div>
+                <div><strong>Punto de referencia:</strong> ${(client.referencePoint && client.referencePoint.trim() !== '') ? client.referencePoint : '—'}</div>
+              </div>
+            </div>
+            ` : ''}
 
             <div class="resumen-block">
               Productos: ${sale.items.length} ítem(s) · IVA incluido

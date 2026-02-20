@@ -262,6 +262,23 @@ export function InvoiceTemplate({ sale, company, client }: InvoiceTemplateProps)
         </div>
       </div>
 
+      {/* Datos de domicilio (cuando hay cliente con dirección, teléfono o referencia) */}
+      {(client.address && client.address !== 'N/A') || (client.phone && client.phone !== 'N/A') || (client.referencePoint && client.referencePoint.trim() !== '') ? (
+        <div className="mb-8 p-4 border-2 border-gray-300 rounded-lg bg-gray-50">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-300 pb-2">
+            ENTREGA A DOMICILIO
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <p><strong>Nombre:</strong> {client.name}</p>
+            <p><strong>Teléfono:</strong> {client.phone || 'N/A'}</p>
+            <p className="sm:col-span-2"><strong>Dirección:</strong> {client.address || 'N/A'}</p>
+            {client.referencePoint && client.referencePoint.trim() !== '' && (
+              <p className="sm:col-span-2"><strong>Punto de referencia:</strong> {client.referencePoint}</p>
+            )}
+          </div>
+        </div>
+      ) : null}
+
       {/* Footer */}
       <div className="border-t-2 border-gray-800 pt-6 text-center text-sm text-gray-600">
         <p>Esta factura cumple con los requisitos legales establecidos por la DIAN</p>

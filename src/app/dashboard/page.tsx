@@ -26,7 +26,8 @@ import {
   Crown,
   Eye,
   EyeOff,
-  Wallet
+  Wallet,
+  Calculator
 } from 'lucide-react'
 import { 
   BarChart, 
@@ -52,6 +53,7 @@ import { StoresService } from '@/lib/stores-service'
 import { RoleProtectedRoute } from '@/components/auth/role-protected-route'
 import { Sale, Expense } from '@/types'
 import { CancelledInvoicesModal } from '@/components/dashboard/cancelled-invoices-modal'
+import { MonthlyClosingModal } from '@/components/dashboard/monthly-closing-modal'
 
 type DateFilter = 'today' | 'range' | 'all'
 
@@ -87,6 +89,7 @@ export default function DashboardPage() {
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [showCancelledModal, setShowCancelledModal] = useState(false)
+  const [showMonthlyClosingModal, setShowMonthlyClosingModal] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [hideNumbers, setHideNumbers] = useState(false)
   const [currentStoreName, setCurrentStoreName] = useState<string | null>(null)
@@ -1653,6 +1656,15 @@ export default function DashboardPage() {
                     {hideNumbers ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                   <Button 
+                    onClick={() => setShowMonthlyClosingModal(true)}
+                    variant="outline"
+                    className="justify-center gap-2 text-[#f29fc8] border-[#f29fc8] hover:bg-[#fce4f0] dark:text-[#f29fc8] dark:border-[#f29fc8] dark:hover:bg-[#f29fc8]/20 text-xs md:text-sm px-2.5 md:px-4 py-2"
+                    title="Cierre de caja mensual"
+                  >
+                    <Calculator className="h-4 w-4" />
+                    <span className="hidden md:inline">Cierre mensual</span>
+                  </Button>
+                  <Button 
                     onClick={handleRefresh}
                     disabled={isRefreshing}
                     variant="outline"
@@ -2558,6 +2570,10 @@ export default function DashboardPage() {
           onClose={() => setShowCancelledModal(false)}
           sales={filteredData.sales}
           allSales={allSales}
+        />
+        <MonthlyClosingModal
+          isOpen={showMonthlyClosingModal}
+          onClose={() => setShowMonthlyClosingModal(false)}
         />
     </div>
     </RoleProtectedRoute>

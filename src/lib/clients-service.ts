@@ -56,6 +56,74 @@ export class ClientsService {
     }
   }
 
+  // Obtener clientes con paginación
+  static async getClientsByPage(
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{ clients: Client[]; total: number; hasMore: boolean }> {
+    try {
+      const offset = (page - 1) * limit
+      const storeId = getCurrentUserStoreId()
+      const MAIN_STORE_ID = '00000000-0000-0000-0000-000000000001'
+
+      let countQuery = supabase
+        .from('clients')
+        .select('*', { count: 'exact', head: true })
+
+      if (!storeId || storeId === MAIN_STORE_ID) {
+        countQuery = countQuery.or(`store_id.is.null,store_id.eq.${MAIN_STORE_ID}`)
+      } else {
+        countQuery = countQuery.eq('store_id', storeId)
+      }
+
+      const { count, error: countError } = await countQuery
+      if (countError) return { clients: [], total: 0, hasMore: false }
+      const total = count ?? 0
+
+      let dataQuery = supabase
+        .from('clients')
+        .select('*')
+
+      if (!storeId || storeId === MAIN_STORE_ID) {
+        dataQuery = dataQuery.or(`store_id.is.null,store_id.eq.${MAIN_STORE_ID}`)
+      } else {
+        dataQuery = dataQuery.eq('store_id', storeId)
+      }
+
+      const { data, error } = await dataQuery
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1)
+
+      if (error) return { clients: [], total, hasMore: false }
+
+      const clients = data.map((client: any) => ({
+        id: client.id,
+        name: client.name,
+        email: client.email || '',
+        phone: client.phone,
+        document: client.document,
+        address: client.address,
+        referencePoint: client.reference_point || '',
+        city: client.city,
+        state: client.state,
+        type: client.type,
+        creditLimit: client.credit_limit || 0,
+        currentDebt: client.current_debt || 0,
+        status: client.status,
+        storeId: client.store_id || undefined,
+        createdAt: client.created_at
+      }))
+
+      return {
+        clients,
+        total,
+        hasMore: offset + clients.length < total
+      }
+    } catch (error) {
+      return { clients: [], total: 0, hasMore: false }
+    }
+  }
+
   // Obtener cliente por ID
   static async getClientById(id: string): Promise<Client | null> {
     try {

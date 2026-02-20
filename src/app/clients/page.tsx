@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 import { Users } from 'lucide-react'
 
 export default function ClientsPage() {
-  const { clients, loading, createClient, updateClient, deleteClient, getAllClients } = useClients()
+  const { clients, loading, totalClients, currentPage, pageSize, createClient, updateClient, deleteClient, getAllClients, fetchPage } = useClients()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -40,7 +40,7 @@ export default function ClientsPage() {
   }
 
   const handleRefresh = async () => {
-    await getAllClients()
+    await fetchPage(currentPage)
     toast.success('Lista de clientes actualizada')
   }
 
@@ -84,6 +84,10 @@ export default function ClientsPage() {
     <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <ClientTable
         clients={clients}
+        totalClients={totalClients}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onPageChange={fetchPage}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onCreate={handleCreate}

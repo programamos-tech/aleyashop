@@ -5,10 +5,16 @@ import { Client } from '@/types'
 import { ClientsService } from '@/lib/clients-service'
 import { useAuth } from './auth-context'
 
+const PAGE_SIZE = 20
+
 interface ClientsContextType {
   clients: Client[]
   loading: boolean
+  totalClients: number
+  currentPage: number
+  pageSize: number
   getAllClients: () => Promise<void>
+  fetchPage: (page: number) => Promise<void>
   getClientById: (id: string) => Promise<Client | null>
   createClient: (clientData: Omit<Client, 'id' | 'createdAt'>) => Promise<{ client: Client | null, error: string | null }>
   updateClient: (id: string, updates: Partial<Client>) => Promise<boolean>
@@ -21,20 +27,28 @@ const ClientsContext = createContext<ClientsContextType | undefined>(undefined)
 export function ClientsProvider({ children }: { children: ReactNode }) {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(false)
+  const [totalClients, setTotalClients] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
   const { user } = useAuth()
 
-  const getAllClients = useCallback(async () => {
+  const fetchPage = useCallback(async (page: number) => {
     setLoading(true)
     try {
-      const clientsData = await ClientsService.getAllClients()
-      setClients(clientsData)
+      const { clients: data, total, hasMore } = await ClientsService.getClientsByPage(page, PAGE_SIZE)
+      setClients(data)
+      setTotalClients(total)
+      setCurrentPage(page)
     } catch (error) {
-      // Error silencioso en producción
       setClients([])
+      setTotalClients(0)
     } finally {
       setLoading(false)
     }
   }, [user?.storeId])
+
+  const getAllClients = useCallback(async () => {
+    await fetchPage(currentPage)
+  }, [fetchPage, currentPage])
 
   const getClientById = async (id: string): Promise<Client | null> => {
     try {
@@ -49,11 +63,10 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     try {
       const result = await ClientsService.createClient(clientData, user?.id)
       if (result.client) {
-        setClients(prev => [result.client!, ...prev])
+        await fetchPage(1)
       }
       return result
     } catch (error) {
-      // Error silencioso en producción
       return { client: null, error: 'Error inesperado al crear el cliente.' }
     }
   }
@@ -62,8 +75,8 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     try {
       const success = await ClientsService.updateClient(id, updates, user?.id)
       if (success) {
-        setClients(prev => 
-          prev.map(client => 
+        setClients(prev =>
+          prev.map(client =>
             client.id === id ? { ...client, ...updates } : client
           )
         )
@@ -71,7 +84,6 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
       }
       return false
     } catch (error) {
-      // Error silencioso en producción
       return false
     }
   }
@@ -80,12 +92,17 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     try {
       const success = await ClientsService.deleteClient(id, user?.id)
       if (success) {
-        setClients(prev => prev.filter(client => client.id !== id))
+        const remaining = clients.filter(c => c.id !== id)
+        if (remaining.length === 0 && currentPage > 1) {
+          await fetchPage(currentPage - 1)
+        } else {
+          setClients(remaining)
+          setTotalClients(prev => Math.max(0, prev - 1))
+        }
         return true
       }
       return false
     } catch (error) {
-      // Error silencioso en producción
       return false
     }
   }
@@ -99,16 +116,19 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // Cargar clientes al inicializar
   useEffect(() => {
-    getAllClients()
-  }, [getAllClients, user?.storeId])
+    fetchPage(1)
+  }, [fetchPage, user?.storeId])
 
   return (
     <ClientsContext.Provider value={{
       clients,
       loading,
+      totalClients,
+      currentPage,
+      pageSize: PAGE_SIZE,
       getAllClients,
+      fetchPage,
       getClientById,
       createClient,
       updateClient,

@@ -18,14 +18,24 @@ import { Client } from '@/types'
 
 interface ClientTableProps {
   clients: Client[]
+  totalClients?: number
+  currentPage?: number
+  pageSize?: number
+  onPageChange?: (page: number) => void
   onEdit: (client: Client) => void
   onDelete: (client: Client) => void
   onCreate: () => void
   onRefresh?: () => void
 }
 
+const DEFAULT_PAGE_SIZE = 20
+
 export function ClientTable({ 
   clients, 
+  totalClients = 0,
+  currentPage = 1,
+  pageSize = DEFAULT_PAGE_SIZE,
+  onPageChange,
   onEdit, 
   onDelete, 
   onCreate,
@@ -326,6 +336,69 @@ export function ClientTable({
                   )
                 })}
               </div>
+
+              {/* Paginación */}
+              {totalClients > pageSize && onPageChange && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 md:px-6 py-3 md:py-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
+                    <span className="hidden sm:inline">Mostrando </span>
+                    <span className="font-semibold">{((currentPage - 1) * pageSize) + 1}</span>
+                    <span className="hidden sm:inline"> - </span>
+                    <span className="sm:hidden"> - </span>
+                    <span className="font-semibold">{Math.min(currentPage * pageSize, totalClients)}</span>
+                    <span className="hidden sm:inline"> de </span>
+                    <span className="sm:hidden"> / </span>
+                    <span className="font-semibold">{totalClients}</span>
+                    <span className="hidden md:inline"> clientes</span>
+                  </div>
+                  <div className="flex items-center space-x-1 md:space-x-2">
+                    <button
+                      onClick={() => onPageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-2 md:px-3 py-1.5 text-xs md:text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95"
+                    >
+                      <span className="hidden sm:inline">Anterior</span>
+                      <span className="sm:hidden">‹</span>
+                    </button>
+                    <div className="flex items-center space-x-0.5 md:space-x-1">
+                      {Array.from({ length: Math.ceil(totalClients / pageSize) }, (_, i) => i + 1)
+                        .filter(page =>
+                          page === 1 ||
+                          page === Math.ceil(totalClients / pageSize) ||
+                          Math.abs(page - currentPage) <= 2
+                        )
+                        .map((page, index, array) => {
+                          const showEllipsis = index > 0 && page - array[index - 1] > 1
+                          return (
+                            <div key={page} className="flex items-center">
+                              {showEllipsis && (
+                                <span className="px-1 md:px-2 text-gray-400 text-xs md:text-sm">...</span>
+                              )}
+                              <button
+                                onClick={() => onPageChange(page)}
+                                className={`px-2 md:px-3 py-1.5 text-xs md:text-sm rounded-md transition-colors min-w-[28px] md:min-w-[32px] active:scale-95 ${
+                                  page === currentPage
+                                    ? 'bg-[#fce4f0] dark:bg-[#f29fc8]/30 text-[#d06a98] dark:text-[#f29fc8] font-medium'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                                }`}
+                              >
+                                {page}
+                              </button>
+                            </div>
+                          )
+                        })}
+                    </div>
+                    <button
+                      onClick={() => onPageChange(currentPage + 1)}
+                      disabled={currentPage >= Math.ceil(totalClients / pageSize)}
+                      className="px-2 md:px-3 py-1.5 text-xs md:text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95"
+                    >
+                      <span className="hidden sm:inline">Siguiente</span>
+                      <span className="sm:hidden">›</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </CardContent>
