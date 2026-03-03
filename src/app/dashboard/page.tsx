@@ -767,8 +767,15 @@ export default function DashboardPage() {
       .filter(p => p.paymentMethod === 'transfer')
       .reduce((sum, payment) => sum + payment.amount, 0)
 
-    // Descontar egresos activos por método de pago (efectivo y transferencia)
-    const activeExpenses = expenses.filter((e: { status?: string }) => e.status !== 'cancelled')
+    // Descontar egresos activos por método de pago (efectivo y transferencia).
+    // En vista "Hoy": excluir "Cierre de caja mensual" para que no descuadre la caja del día (son egresos de resumen del mes).
+    const CIERRE_CATEGORY = 'Cierre de caja mensual'
+    const excludeCierreFromCaja = effectiveDateFilter === 'today'
+    const activeExpenses = expenses.filter((e: { status?: string; category?: string }) => {
+      if (e.status === 'cancelled') return false
+      if (excludeCierreFromCaja && e.category === CIERRE_CATEGORY) return false
+      return true
+    })
     activeExpenses.forEach((expense: { amount?: number; paymentMethod?: string }) => {
       const amount = expense.amount || 0
       if (expense.paymentMethod === 'cash') {
@@ -1367,6 +1374,8 @@ export default function DashboardPage() {
       overdueCreditsDebt,
       uniqueClients,
       grossProfit,
+      // Ganancia neta = ganancia bruta − total egresos (egresos sin IVA)
+      netProfit: grossProfit - Math.round(totalExpenses / 1.19),
       topProfitableSales,
       recentTopProducts,
       cancelledSales,
@@ -1940,9 +1949,27 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Placeholder para mantener la grilla alineada */}
-          <div className="bg-white/60 dark:bg-gray-800/40 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm flex items-center justify-center text-xs text-gray-400 dark:text-gray-500">
-            —
+          {/* Ganancia Neta (solo super admin): ganancia bruta − egresos, sin IVA */}
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 md:p-6 shadow-sm flex flex-col h-full">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-1.5 bg-[#fce4f0] dark:bg-[#f29fc8]/20 rounded-lg">
+                <DollarSign className="h-3.5 w-3.5 text-[#d06a98] dark:text-[#f29fc8]" />
+              </div>
+              <div className="text-right">
+                <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Ganancia Neta</span>
+                <p className="text-[10px] md:text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  {effectiveDateFilter === 'today' ? 'Hoy' :
+                   effectiveDateFilter === 'all' ? 'Todos los Períodos' :
+                   getDateFilterLabel(effectiveDateFilter)}
+                </p>
+              </div>
+            </div>
+            <p className={`text-xl md:text-2xl font-bold mb-1 ${metrics.netProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              {formatCurrency(metrics.netProfit)}
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Ganancia bruta − egresos (sin IVA)
+            </p>
           </div>
         </div>
       )}
