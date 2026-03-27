@@ -31,10 +31,9 @@ import {
   Copy,
   Check
 } from 'lucide-react'
-import { Sale, Credit, StoreStockTransfer } from '@/types'
+import { Sale, Credit } from '@/types'
 import { usePermissions } from '@/hooks/usePermissions'
 import { CreditsService } from '@/lib/credits-service'
-import { StoreStockTransferService } from '@/lib/store-stock-transfer-service'
 import { ClientsService } from '@/lib/clients-service'
 import { Client } from '@/types'
 
@@ -86,7 +85,6 @@ export function SalesTable({
   const [isCancelling, setIsCancelling] = useState<Record<string, boolean>>({})
   const [cancelSuccessMessage, setCancelSuccessMessage] = useState<Record<string, string>>({})
   const [credits, setCredits] = useState<Record<string, Credit>>({})
-  const [transfers, setTransfers] = useState<Record<string, StoreStockTransfer>>({})
   const [deliveryClients, setDeliveryClients] = useState<Record<string, Client>>({})
   const [copiedDelivery, setCopiedDelivery] = useState<string | null>(null)
   const [clientDeliveryCount, setClientDeliveryCount] = useState<Record<string, number>>({})
@@ -94,7 +92,6 @@ export function SalesTable({
   // Memoizar IDs de ventas para evitar loops cuando el array cambia de referencia
   const salesIds = useMemo(() => sales.map(s => s.id).join(','), [sales])
   const processedCreditsRef = useRef<Set<string>>(new Set())
-  const processedTransfersRef = useRef<Set<string>>(new Set())
 
   // Cargar créditos para ventas de tipo crédito
   useEffect(() => {
@@ -127,43 +124,6 @@ export function SalesTable({
     
     if (sales.length > 0) {
       loadCredits()
-    }
-  }, [salesIds]) // Usar salesIds en lugar de sales para evitar loops
-
-  // Cargar transferencias para ventas de la tienda principal que puedan ser de transferencia entre tiendas
-  useEffect(() => {
-    const loadTransfers = async () => {
-      // Solo buscar transferencias para ventas de la tienda principal
-      // La transferencia se identifica por tener un registro asociado, no por método de pago
-      const MAIN_STORE_ID = '00000000-0000-0000-0000-000000000001'
-      const mainStoreSales = sales.filter(sale => sale.storeId === MAIN_STORE_ID)
-      const transfersToLoad: Record<string, StoreStockTransfer> = {}
-      
-      await Promise.all(
-        mainStoreSales.map(async (sale) => {
-          // Solo cargar si no está ya cargado y no se está procesando
-          if (!transfers[sale.id] && !processedTransfersRef.current.has(sale.id)) {
-            processedTransfersRef.current.add(sale.id)
-            try {
-              const transfer = await StoreStockTransferService.getTransferBySaleId(sale.id)
-              if (transfer) {
-                transfersToLoad[sale.id] = transfer
-              }
-            } catch (error) {
-              // Error silencioso - remover del set si falla para permitir reintento manual
-              processedTransfersRef.current.delete(sale.id)
-            }
-          }
-        })
-      )
-      
-      if (Object.keys(transfersToLoad).length > 0) {
-        setTransfers(prev => ({ ...prev, ...transfersToLoad }))
-      }
-    }
-    
-    if (sales.length > 0) {
-      loadTransfers()
     }
   }, [salesIds]) // Usar salesIds en lugar de sales para evitar loops
 
@@ -215,7 +175,7 @@ export function SalesTable({
     const count = clientDeliveryCount[sale.clientId] || 0
     let historialMsg = ''
     if (count <= 1) {
-      historialMsg = `\n\n⚠️ *ATENCIÓN:* 1er pedido - Confirma la recepción de la transferencia antes de enviar`
+      historialMsg = `\n\n⚠️ *ATENCIÓN:* 1er pedido a domicilio — confirma datos de entrega antes de enviar`
     } else if (count <= 5) {
       historialMsg = `\n\n📊 *Historial:* ${count} pedidos anteriores`
     } else {
@@ -239,21 +199,6 @@ export function SalesTable({
     
     const creditSuffix = credit.id.substring(credit.id.length - 6).toLowerCase()
     return `${clientInitials}${creditSuffix}`
-  }
-
-  // Función helper para generar ID de la transferencia
-  const getTransferId = (transfer: StoreStockTransfer): string => {
-    if (transfer.transferNumber) {
-      return transfer.transferNumber.replace('TRF-', '')
-    }
-    // Si no hay transferNumber, usar las últimas 8 letras del ID
-    return transfer.id.substring(transfer.id.length - 8).toUpperCase()
-  }
-
-  // Verificar si una venta es de transferencia entre tiendas
-  // Solo es true si hay una transferencia de stock asociada cargada
-  const isTransferSale = (sale: Sale): boolean => {
-    return !!transfers[sale.id]
   }
 
   // Efecto para manejar la búsqueda
@@ -601,8 +546,6 @@ export function SalesTable({
                             <span className="text-xs font-medium text-gray-500 dark:text-gray-400">#{index + 1}</span>
                             {sale.paymentMethod === 'credit' ? (
                               <CreditCard className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400 flex-shrink-0" />
-                            ) : isTransferSale(sale) ? (
-                              <Truck className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
                             ) : (
                               <FileText className="h-3.5 w-3.5 text-[#f29fc8] dark:text-[#f29fc8] flex-shrink-0" />
                             )}
@@ -621,11 +564,6 @@ export function SalesTable({
                             {sale.paymentMethod === 'credit' && credits[sale.id] && (
                               <span className="text-xs font-mono text-orange-600 dark:text-orange-400">
                                 Crédito #{getCreditId(credits[sale.id])}
-                              </span>
-                            )}
-                            {isTransferSale(sale) && transfers[sale.id] && (
-                              <span className="text-xs font-mono text-cyan-600 dark:text-cyan-400">
-                                TRF {transfers[sale.id].transferNumber || `#${getTransferId(transfers[sale.id])}`}
                               </span>
                             )}
                           </div>
@@ -948,17 +886,8 @@ export function SalesTable({
                             </div>
                           )}
 
-                          {/* Mensaje para facturas de transferencias - Mobile */}
-                          {sale.status !== 'cancelled' && transfers[sale.id] && (
-                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                              <div className="text-xs text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
-                                <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
-                                <span>Esta factura solo puede anularse desde Transferencias</span>
-                              </div>
-                            </div>
-                          )}
-                          {/* Botón de Anular Factura - Mobile (No mostrar para transferencias entre tiendas) */}
-                          {sale.status !== 'cancelled' && sale.status !== 'draft' && onCancel && !transfers[sale.id] && (
+                          {/* Botón de Anular Factura - Mobile */}
+                          {sale.status !== 'cancelled' && sale.status !== 'draft' && onCancel && (
                             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
                               {!showCancelForm[sale.id] ? (
                                 <Button
@@ -1143,8 +1072,6 @@ export function SalesTable({
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             {sale.paymentMethod === 'credit' ? (
                               <CreditCard className="h-5 w-5 text-orange-600 dark:text-orange-400 flex-shrink-0" />
-                            ) : isTransferSale(sale) ? (
-                              <Truck className="h-5 w-5 text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
                             ) : (
                               <FileText className="h-5 w-5 text-[#f29fc8] dark:text-[#f29fc8] flex-shrink-0" />
                             )}
@@ -1174,14 +1101,6 @@ export function SalesTable({
                                         <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ID Crédito</div>
                                         <div className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">
                                           #{getCreditId(credits[sale.id])}
-                                        </div>
-                                      </div>
-                                    )}
-                                    {isTransferSale(sale) && transfers[sale.id] && (
-                                      <div className="border-l border-gray-300 dark:border-gray-600 pl-3">
-                                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ID Transferencia</div>
-                                        <div className="text-sm font-mono font-semibold text-cyan-600 dark:text-cyan-400">
-                                          {transfers[sale.id].transferNumber || `#${getTransferId(transfers[sale.id])}`}
                                         </div>
                                       </div>
                                     )}
@@ -1508,7 +1427,7 @@ export function SalesTable({
                                                 1er pedido
                                               </div>
                                               <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-[#d06a98] text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-lg">
-                                                Confirma la recepción de la transferencia
+                                                Primer pedido a domicilio — confirma datos de entrega
                                               </div>
                                             </div>
                                           )
@@ -1571,17 +1490,8 @@ export function SalesTable({
                               </div>
                             )}
 
-                            {/* Mensaje para facturas de transferencias - Desktop */}
-                            {sale.status !== 'cancelled' && transfers[sale.id] && (
-                              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                                <div className="text-xs text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
-                                  <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
-                                  <span>Esta factura solo puede anularse desde Transferencias</span>
-                                </div>
-                              </div>
-                            )}
-                            {/* Botón de Anular Factura (No mostrar para transferencias entre tiendas) */}
-                            {sale.status !== 'cancelled' && sale.status !== 'draft' && onCancel && !transfers[sale.id] && (
+                            {/* Botón de Anular Factura - Desktop */}
+                            {sale.status !== 'cancelled' && sale.status !== 'draft' && onCancel && (
                               <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
                                 {!showCancelForm[sale.id] ? (
                                   <Button

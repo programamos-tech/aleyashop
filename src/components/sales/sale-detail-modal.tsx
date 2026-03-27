@@ -15,16 +15,14 @@ import {
   Package,
   Eye,
   Edit,
-  Truck,
   Bike,
   Copy,
   MapPin,
   Check
 } from 'lucide-react'
-import { Sale, CompanyConfig, Client, Credit, StoreStockTransfer } from '@/types'
+import { Sale, CompanyConfig, Client, Credit } from '@/types'
 import { CompanyService } from '@/lib/company-service'
 import { CreditsService } from '@/lib/credits-service'
-import { StoreStockTransferService } from '@/lib/store-stock-transfer-service'
 import { ClientsService } from '@/lib/clients-service'
 import { InvoiceTemplate } from './invoice-template'
 import { StoresService } from '@/lib/stores-service'
@@ -59,7 +57,6 @@ export default function SaleDetailModal({
   const [isFinalizing, setIsFinalizing] = useState(false)
   const cancelFormRef = useRef<HTMLDivElement>(null)
   const [credit, setCredit] = useState<Credit | null>(null)
-  const [transfer, setTransfer] = useState<StoreStockTransfer | null>(null)
   const [deliveryCopied, setDeliveryCopied] = useState(false)
 
   // Cargar datos del cliente si es un domicilio
@@ -102,30 +99,6 @@ export default function SaleDetailModal({
     }
   }, [isOpen, sale?.paymentMethod, sale?.invoiceNumber]) // Usar propiedades específicas en lugar de sale completo
 
-  // Cargar transferencia si la venta es de tipo transferencia
-  useEffect(() => {
-    const loadTransfer = async () => {
-      const MAIN_STORE_ID = '00000000-0000-0000-0000-000000000001'
-      // Solo buscar transferencia asociada para ventas de la tienda principal
-      // La transferencia se identifica por tener un registro en stock_transfers, no por método de pago
-      if (sale && sale.storeId === MAIN_STORE_ID && sale.id) {
-        try {
-          const transferData = await StoreStockTransferService.getTransferBySaleId(sale.id)
-          setTransfer(transferData)
-        } catch (error) {
-          // Si es 404 o no hay transferencia, guardar null y no reintentar
-          setTransfer(null)
-        }
-      } else {
-        setTransfer(null)
-      }
-    }
-    
-    if (isOpen && sale?.id) {
-      loadTransfer()
-    }
-  }, [isOpen, sale?.id, sale?.storeId]) // Usar sale?.id en lugar de sale completo para evitar loops
-
   // Función helper para generar ID del crédito
   const getCreditId = (credit: Credit): string => {
     const clientInitials = credit.clientName
@@ -137,15 +110,6 @@ export default function SaleDetailModal({
     
     const creditSuffix = credit.id.substring(credit.id.length - 6).toLowerCase()
     return `${clientInitials}${creditSuffix}`
-  }
-
-  // Función helper para generar ID de la transferencia
-  const getTransferId = (transfer: StoreStockTransfer): string => {
-    if (transfer.transferNumber) {
-      return transfer.transferNumber.replace('TRF-', '')
-    }
-    // Si no hay transferNumber, usar las últimas 8 letras del ID
-    return transfer.id.substring(transfer.id.length - 8).toUpperCase()
   }
 
   useEffect(() => {
@@ -646,12 +610,10 @@ export default function SaleDetailModal({
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3">
-                {/* Factura e ID Crédito/Transferencia - Estilo exacto a créditos pero invertido */}
+                {/* Factura e ID Crédito */}
                 <div className="flex items-center gap-4 mb-2">
                   {sale.paymentMethod === 'credit' ? (
                     <CreditCard className="h-5 w-5 text-orange-600 dark:text-orange-400 flex-shrink-0" />
-                  ) : transfer ? (
-                    <Truck className="h-5 w-5 text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
                   ) : (
                   <Receipt className="h-5 w-5 text-[#f29fc8] dark:text-[#f29fc8] flex-shrink-0" />
                   )}
@@ -668,14 +630,6 @@ export default function SaleDetailModal({
                           <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ID Crédito</div>
                           <div className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">
                             #{getCreditId(credit)}
-                          </div>
-                        </div>
-                      )}
-                      {transfer && (sale.paymentMethod === 'transfer' || sale.paymentMethod === 'mixed') && (
-                        <div className="border-l border-gray-300 dark:border-gray-600 pl-3">
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">ID Transferencia</div>
-                          <div className="text-sm font-mono font-semibold text-cyan-600 dark:text-cyan-400">
-                            {transfer.transferNumber || `#${getTransferId(transfer)}`}
                           </div>
                         </div>
                       )}
@@ -1003,8 +957,7 @@ export default function SaleDetailModal({
               </Button>
             )}
             */}
-            {/* No mostrar botón Anular para facturas de transferencias entre tiendas */}
-            {sale.status !== 'cancelled' && sale.status !== 'draft' && !transfer && (
+            {sale.status !== 'cancelled' && sale.status !== 'draft' && (
               <Button
                 onClick={handleShowCancelForm}
                 disabled={isCancelling}
@@ -1013,13 +966,6 @@ export default function SaleDetailModal({
                 <AlertTriangle className="h-4 w-4 mr-2" />
                 Anular Factura
               </Button>
-            )}
-            {/* Mensaje informativo para facturas de transferencias */}
-            {sale.status !== 'cancelled' && transfer && (
-              <div className="text-xs text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                Esta factura solo puede anularse desde Transferencias
-              </div>
             )}
           </div>
           
