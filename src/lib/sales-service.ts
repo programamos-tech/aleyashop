@@ -5,6 +5,59 @@ import { ProductsService } from './products-service'
 import { getCurrentUserStoreId, canAccessAllStores, getCurrentUser } from './store-helper'
 
 export class SalesService {
+  private static saleItemNeedsReferenceFetch(productReferenceCode: string | null | undefined): boolean {
+    return !productReferenceCode || productReferenceCode === 'N/A'
+  }
+
+  private static collectProductIdsNeedingReferences(saleItems: any[] | null | undefined): string[] {
+    const ids: string[] = []
+    for (const item of saleItems || []) {
+      if (item?.product_id && this.saleItemNeedsReferenceFetch(item.product_reference_code)) {
+        ids.push(item.product_id)
+      }
+    }
+    return ids
+  }
+
+  /** Una o varias queries .in() en lugar de N selects por ítem */
+  private static async loadProductReferenceMap(productIds: string[]): Promise<Map<string, string>> {
+    const unique = [...new Set(productIds.filter(Boolean))]
+    const map = new Map<string, string>()
+    if (unique.length === 0) return map
+    const BATCH = 150
+    for (let i = 0; i < unique.length; i += BATCH) {
+      const chunk = unique.slice(i, i + BATCH)
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, reference')
+        .in('id', chunk)
+      if (error) continue
+      for (const row of data || []) {
+        map.set(row.id, row.reference ?? 'N/A')
+      }
+    }
+    return map
+  }
+
+  private static mapSaleItemToDomain(item: any, refMap: Map<string, string>): SaleItem {
+    let productReference = item.product_reference_code
+    if (this.saleItemNeedsReferenceFetch(productReference)) {
+      productReference = refMap.get(item.product_id) ?? 'N/A'
+    }
+    return {
+      id: item.id,
+      productId: item.product_id,
+      productName: item.product_name,
+      productReferenceCode: productReference,
+      quantity: item.quantity,
+      unitPrice: item.unit_price,
+      discount: item.discount || 0,
+      discountType: item.discount_type || 'amount',
+      tax: item.tax || 0,
+      total: item.total
+    }
+  }
+
   // Generar el siguiente número de factura
   static async getNextInvoiceNumber(): Promise<string> {
     try {
@@ -116,42 +169,22 @@ export class SalesService {
         throw error
       }
 
-      // Obtener referencias de productos para items que no las tienen
-      // Y obtener información de créditos para ventas a crédito
+      const rows = data || []
+      const refIds: string[] = []
+      for (const sale of rows) {
+        refIds.push(...this.collectProductIdsNeedingReferences(sale.sale_items))
+      }
+      const referenceMap = await this.loadProductReferenceMap(refIds)
+
+      // Obtener información de créditos para ventas a crédito (referencias de producto ya resueltas en lote)
       const sales = await Promise.all(
-        (data || []).map(async (sale) => {
-          const itemsWithReferences = await Promise.all(
-            (sale.sale_items || []).map(async (item: any) => {
-              let productReference = item.product_reference_code
-              
-              // Si no hay referencia guardada, obtenerla desde la tabla products
-              if (!productReference || productReference === 'N/A' || productReference === null) {
-                const { data: product } = await supabase
-                  .from('products')
-                  .select('reference')
-                  .eq('id', item.product_id)
-                  .single()
-                
-                productReference = product?.reference || 'N/A'
-              }
-              
-              return {
-                id: item.id,
-                productId: item.product_id,
-                productName: item.product_name,
-                productReferenceCode: productReference,
-                quantity: item.quantity,
-                unitPrice: item.unit_price,
-                discount: item.discount || 0,
-                discountType: item.discount_type || 'amount',
-                tax: item.tax || 0,
-                total: item.total
-              }
-            })
+        rows.map(async (sale) => {
+          const itemsWithReferences = (sale.sale_items || []).map((item: any) =>
+            this.mapSaleItemToDomain(item, referenceMap)
           )
 
           // Obtener información del crédito si es una venta a crédito
-          let creditStatus = null
+          let creditStatus: Sale['creditStatus'] | undefined = undefined
           if (sale.payment_method === 'credit' && sale.invoice_number) {
             try {
               const { CreditsService } = await import('./credits-service')
@@ -173,8 +206,8 @@ export class SalesService {
             tax: sale.tax,
             discount: sale.discount,
             discountType: sale.discount_type || 'amount',
-            status: sale.status,
-            paymentMethod: sale.payment_method,
+            status: sale.status as Sale['status'],
+            paymentMethod: sale.payment_method as Sale['paymentMethod'],
             payments: sale.sale_payments?.map((payment: any) => ({
               id: payment.id,
               saleId: payment.sale_id,
@@ -190,11 +223,11 @@ export class SalesService {
             storeId: sale.store_id || undefined,
             createdAt: sale.created_at,
             items: itemsWithReferences,
-            creditStatus: creditStatus, // Estado del crédito asociado
+            creditStatus,
             cancellationReason: sale.cancellation_reason || undefined,
             isDelivery: sale.is_delivery || false,
             deliveryFee: sale.delivery_fee || 0
-          }
+          } satisfies Sale
         })
       )
 
@@ -401,70 +434,42 @@ export class SalesService {
         }))
       })
 
-      // Procesar referencias de productos (mismo código que getAllSales)
-      const sales = await Promise.all(
-        allSales.map(async (sale) => {
-          const itemsWithReferences = await Promise.all(
-            (sale.sale_items || []).map(async (item: any) => {
-              let productReference = item.product_reference_code
-              
-              if (!productReference || productReference === 'N/A' || productReference === null) {
-                const { data: product } = await supabase
-                  .from('products')
-                  .select('reference')
-                  .eq('id', item.product_id)
-                  .single()
-                
-                productReference = product?.reference || 'N/A'
-              }
-              
-              return {
-                id: item.id,
-                productId: item.product_id,
-                productName: item.product_name,
-                productReferenceCode: productReference,
-                quantity: item.quantity,
-                unitPrice: item.unit_price,
-                discount: item.discount || 0,
-                discountType: item.discount_type || 'amount',
-                tax: item.tax || 0,
-                total: item.total
-              }
-            })
-          )
+      const refIdsDash: string[] = []
+      for (const sale of allSales) {
+        refIdsDash.push(...this.collectProductIdsNeedingReferences(sale.sale_items))
+      }
+      const referenceMapDash = await this.loadProductReferenceMap(refIdsDash)
 
-          return {
-            id: sale.id,
-            clientId: sale.client_id,
-            clientName: sale.client_name,
-            total: sale.total,
-            subtotal: sale.subtotal,
-            tax: sale.tax,
-            discount: sale.discount,
-            discountType: sale.discount_type || 'amount',
-            status: sale.status,
-            paymentMethod: sale.payment_method,
-            payments: sale.sale_payments?.map((payment: any) => ({
-              id: payment.id,
-              saleId: payment.sale_id,
-              paymentType: payment.payment_type,
-              amount: payment.amount,
-              createdAt: payment.created_at,
-              updatedAt: payment.updated_at || payment.created_at
-            })) || [],
-            invoiceNumber: sale.invoice_number,
+      const sales = allSales.map((sale) => ({
+        id: sale.id,
+        clientId: sale.client_id,
+        clientName: sale.client_name,
+        total: sale.total,
+        subtotal: sale.subtotal,
+        tax: sale.tax,
+        discount: sale.discount,
+        discountType: sale.discount_type || 'amount',
+        status: sale.status as Sale['status'],
+        paymentMethod: sale.payment_method as Sale['paymentMethod'],
+        payments: sale.sale_payments?.map((payment: any) => ({
+          id: payment.id,
+          saleId: payment.sale_id,
+          paymentType: payment.payment_type,
+          amount: payment.amount,
+          createdAt: payment.created_at,
+          updatedAt: payment.updated_at || payment.created_at
+        })) || [],
+        invoiceNumber: sale.invoice_number,
         sellerId: sale.seller_id,
         sellerName: sale.seller_name,
         sellerEmail: sale.seller_email,
         storeId: sale.store_id || undefined,
         createdAt: sale.created_at,
-        items: itemsWithReferences,
+        items: (sale.sale_items || []).map((item: any) => this.mapSaleItemToDomain(item, referenceMapDash)),
         cancellationReason: sale.cancellation_reason || undefined,
         isDelivery: sale.is_delivery || false,
         deliveryFee: sale.delivery_fee || 0
-      }
-        })
-      )
+      } satisfies Sale))
 
       console.log('[SALES SERVICE] getDashboardSales - Processed sales:', {
         totalSales: sales.length,
@@ -527,43 +532,12 @@ export class SalesService {
 
       if (!data) return null
 
-      console.log('🔍 DEBUG getSaleById - data.sale_items:', data.sale_items)
-      console.log('🔍 DEBUG getSaleById - data.sale_items type:', typeof data.sale_items)
-      console.log('🔍 DEBUG getSaleById - data.sale_items length:', data.sale_items?.length)
-
-      // Obtener referencias de productos si no están en sale_items (para ventas antiguas)
-      const itemsWithReferences = await Promise.all(
-        (data.sale_items || []).map(async (item: any) => {
-          let productReference = item.product_reference_code
-          
-          // Si no hay referencia guardada, obtenerla desde la tabla products
-          if (!productReference || productReference === 'N/A' || productReference === null) {
-            const { data: product } = await supabase
-              .from('products')
-              .select('reference')
-              .eq('id', item.product_id)
-              .single()
-            
-            productReference = product?.reference || 'N/A'
-          }
-          
-          return {
-            id: item.id,
-            productId: item.product_id,
-            productName: item.product_name,
-            productReferenceCode: productReference,
-            quantity: item.quantity,
-            unitPrice: item.unit_price,
-            discount: item.discount || 0,
-            discountType: item.discount_type || 'amount',
-            tax: item.tax || 0,
-            total: item.total
-          }
-        })
+      const refMapById = await this.loadProductReferenceMap(
+        this.collectProductIdsNeedingReferences(data.sale_items)
       )
-
-      console.log('🔍 DEBUG getSaleById - itemsWithReferences:', itemsWithReferences)
-      console.log('🔍 DEBUG getSaleById - itemsWithReferences length:', itemsWithReferences.length)
+      const itemsWithReferences = (data.sale_items || []).map((item: any) =>
+        this.mapSaleItemToDomain(item, refMapById)
+      )
 
       const result = {
         id: data.id,
@@ -595,9 +569,6 @@ export class SalesService {
         isDelivery: data.is_delivery || false,
         deliveryFee: data.delivery_fee || 0
       }
-
-      console.log('🔍 DEBUG getSaleById - result.items:', result.items)
-      console.log('🔍 DEBUG getSaleById - returning result')
 
       return result
     } catch (error) {
@@ -1704,35 +1675,17 @@ export class SalesService {
         throw error
       }
 
-      return await Promise.all(data?.map(async sale => {
-        // Obtener items de la venta con referencia de productos
-        const items = await Promise.all((sale.sale_items || []).map(async (item: any) => {
-          let productReference = item.product_reference_code
-          
-          // Si no hay referencia guardada, obtenerla desde la tabla products (para ventas antiguas)
-          if (!productReference || productReference === 'N/A' || productReference === null) {
-            const { data: product } = await supabase
-              .from('products')
-              .select('reference')
-              .eq('id', item.product_id)
-              .single()
-            
-            productReference = product?.reference || 'N/A'
-          }
-          
-          return {
-            id: item.id,
-            productId: item.product_id,
-            productName: item.product_name,
-            productReferenceCode: productReference,
-            quantity: item.quantity,
-            unitPrice: item.unit_price,
-            discount: item.discount || 0,
-            discountType: item.discount_type || 'amount',
-            tax: item.tax || 0,
-            total: item.total
-          }
-        }))
+      const searchRows = data || []
+      const refIdsSearch: string[] = []
+      for (const sale of searchRows) {
+        refIdsSearch.push(...this.collectProductIdsNeedingReferences(sale.sale_items))
+      }
+      const referenceMapSearch = await this.loadProductReferenceMap(refIdsSearch)
+
+      return await Promise.all(searchRows.map(async sale => {
+        const items = (sale.sale_items || []).map((item: any) =>
+          this.mapSaleItemToDomain(item, referenceMapSearch)
+        )
 
         // Obtener pagos mixtos si existe
         let payments: SalePayment[] = []
@@ -1753,7 +1706,7 @@ export class SalesService {
         }
 
         // Obtener información del crédito si es una venta a crédito
-        let creditStatus = null
+        let creditStatus: Sale['creditStatus'] | undefined = undefined
         if (sale.payment_method === 'credit' && sale.invoice_number) {
           try {
             const { CreditsService } = await import('./credits-service')
@@ -1775,8 +1728,8 @@ export class SalesService {
           tax: sale.tax,
           discount: sale.discount,
           discountType: sale.discount_type || 'amount',
-          status: sale.status,
-          paymentMethod: sale.payment_method,
+          status: sale.status as Sale['status'],
+          paymentMethod: sale.payment_method as Sale['paymentMethod'],
           invoiceNumber: sale.invoice_number,
           sellerId: sale.seller_id,
           sellerName: sale.seller_name || '',
@@ -1785,10 +1738,10 @@ export class SalesService {
           createdAt: sale.created_at,
           items,
           payments: payments.length > 0 ? payments : undefined,
-          creditStatus: creditStatus, // Estado del crédito asociado
+          creditStatus,
           isDelivery: sale.is_delivery || false,
           deliveryFee: sale.delivery_fee || 0
-        }
+        } satisfies Sale
       }) || [])
     } catch (error) {
       // Error silencioso en producción

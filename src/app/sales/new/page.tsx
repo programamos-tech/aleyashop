@@ -37,7 +37,7 @@ const MIN_PROFIT_MARGIN = 0.10
 export default function NewSalePage() {
   const router = useRouter()
   const { clients, getAllClients } = useClients()
-  const { products, refreshProducts, searchProducts } = useProducts()
+  const { products, searchProducts } = useProducts()
   const { createSale } = useSales()
   const { user } = useAuth()
   
@@ -74,8 +74,7 @@ export default function NewSalePage() {
 
   useEffect(() => {
     getAllClients()
-    refreshProducts()
-  }, [getAllClients, refreshProducts])
+  }, [getAllClients])
 
   useEffect(() => {
     if (paymentMethod === 'mixed') {

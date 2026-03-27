@@ -178,14 +178,14 @@ export function SalesProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const searchSales = async (searchTerm: string): Promise<Sale[]> => {
+  const searchSales = useCallback(async (searchTerm: string): Promise<Sale[]> => {
     try {
       return await SalesService.searchSales(searchTerm)
     } catch (error) {
       // Error silencioso en producción
       throw error
     }
-  }
+  }, [])
 
   const refreshSales = async () => {
     await fetchSales(1, false)
