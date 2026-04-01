@@ -9,9 +9,28 @@ interface DatePickerProps {
   placeholder?: string
   className?: string
   minDate?: Date
+  /** Fechas posteriores a este día (calendario) quedan deshabilitadas */
+  maxDate?: Date
+  /**
+   * start = alinear panel al borde izquierdo del campo (se expande a la derecha; mejor en modales).
+   * end = alinear al borde derecho (comportamiento anterior).
+   */
+  dropdownAlign?: 'start' | 'end'
 }
 
-export function DatePicker({ selectedDate, onDateSelect, placeholder = "Seleccionar fecha", className = "", minDate }: DatePickerProps) {
+function startOfDay(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+}
+
+export function DatePicker({
+  selectedDate,
+  onDateSelect,
+  placeholder = 'Seleccionar fecha',
+  className = '',
+  minDate,
+  maxDate,
+  dropdownAlign = 'end',
+}: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [showAbove, setShowAbove] = useState(false)
@@ -102,8 +121,10 @@ export function DatePicker({ selectedDate, onDateSelect, placeholder = "Seleccio
   }
 
   const isDateDisabled = (date: Date) => {
-    if (!minDate) return false
-    return date < minDate
+    const day = startOfDay(date)
+    if (minDate && day < startOfDay(minDate)) return true
+    if (maxDate && day > startOfDay(maxDate)) return true
+    return false
   }
 
   const isSelected = (date: Date) => {
@@ -165,7 +186,11 @@ export function DatePicker({ selectedDate, onDateSelect, placeholder = "Seleccio
 
       {/* Calendar dropdown */}
       {isOpen && (
-        <div className={`absolute ${showAbove ? 'bottom-full mb-1' : 'top-full mt-1'} right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-[100] p-4 min-w-[280px] max-w-[280px]`}>
+        <div
+          className={`absolute ${showAbove ? 'bottom-full mb-1' : 'top-full mt-1'} ${
+            dropdownAlign === 'start' ? 'left-0' : 'right-0'
+          } bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-[300] p-4 w-[min(100vw-2rem,320px)] min-w-[280px]`}
+        >
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <button

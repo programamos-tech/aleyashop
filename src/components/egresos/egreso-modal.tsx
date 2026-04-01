@@ -57,6 +57,7 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
   const [amount, setAmount] = useState('')
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [paymentMethod, setPaymentMethod] = useState('')
+  const [includesVat, setIncludesVat] = useState(false)
   const [notes, setNotes] = useState('')
   const [otherConcept, setOtherConcept] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -77,6 +78,7 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
       setAmount('')
       setSelectedDate(null)
       setPaymentMethod('')
+      setIncludesVat(false)
       setNotes('')
     }
   }, [isOpen])
@@ -174,6 +176,7 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
         amount: amountValue,
         date: formatDateForDb(selectedDate),
         paymentMethod,
+        includesVat,
         notes: notes.trim() || ''
       },
       user?.id
@@ -344,6 +347,21 @@ export function EgresoModal({ isOpen, onClose, onSaved }: EgresoModalProps) {
                   </div>
                 </div>
               </div>
+
+              <label className="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-800/50 p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includesVat}
+                  onChange={(e) => setIncludesVat(e.target.checked)}
+                  className="mt-0.5 rounded border-gray-300 text-[#f29fc8] focus:ring-[#f29fc8]"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300 leading-snug">
+                  <span className="font-medium text-gray-900 dark:text-white">El monto incluye IVA (19%)</span>
+                  <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Actívalo solo si registras el total con IVA (factura gravada). Nómina, arriendo informal u otros sin IVA: déjalo sin marcar para que la ganancia neta reste el valor completo.
+                  </span>
+                </span>
+              </label>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Notas</label>

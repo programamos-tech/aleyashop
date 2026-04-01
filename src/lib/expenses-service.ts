@@ -10,6 +10,7 @@ function mapRowToExpense(expense: any): Expense {
     amount: expense.amount,
     date: expense.date,
     paymentMethod: expense.payment_method,
+    includesVat: expense.includes_vat === true,
     notes: expense.notes || '',
     status: expense.status || 'active',
     cancelledAt: expense.cancelled_at || null,
@@ -188,6 +189,7 @@ export class ExpensesService {
           amount: expenseData.amount,
           date: expenseData.date,
           payment_method: expenseData.paymentMethod,
+          includes_vat: expenseData.includesVat ?? false,
           notes: expenseData.notes || null
         })
         .select()
@@ -238,6 +240,7 @@ export class ExpensesService {
       if (updates.amount !== undefined) updateData.amount = updates.amount
       if (updates.date !== undefined) updateData.date = updates.date
       if (updates.paymentMethod !== undefined) updateData.payment_method = updates.paymentMethod
+      if (updates.includesVat !== undefined) updateData.includes_vat = updates.includesVat
       if (updates.notes !== undefined) updateData.notes = updates.notes
 
       const { error } = await supabase

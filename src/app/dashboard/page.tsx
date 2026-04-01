@@ -52,6 +52,7 @@ import { getCurrentUserStoreId, isMainStoreUser } from '@/lib/store-helper'
 import { StoresService } from '@/lib/stores-service'
 import { RoleProtectedRoute } from '@/components/auth/role-protected-route'
 import { Sale, Expense } from '@/types'
+import { sumExpensesForNetProfit } from '@/lib/expense-net-profit'
 import { CancelledInvoicesModal } from '@/components/dashboard/cancelled-invoices-modal'
 import { MonthlyClosingModal } from '@/components/dashboard/monthly-closing-modal'
 
@@ -808,6 +809,7 @@ export default function DashboardPage() {
 
     // Total egresos (activeExpenses ya definido arriba para descontar de efectivo/transferencia)
     const totalExpenses = activeExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
+    const expensesTotalForNetProfit = sumExpensesForNetProfit(activeExpenses as Expense[])
 
     // Calcular el total real de métodos de pago conocidos
     const knownPaymentMethodsTotal = cashRevenue + transferRevenue + creditRevenue
@@ -1374,8 +1376,8 @@ export default function DashboardPage() {
       overdueCreditsDebt,
       uniqueClients,
       grossProfit,
-      // Ganancia neta = ganancia bruta − total egresos (egresos sin IVA)
-      netProfit: grossProfit - Math.round(totalExpenses / 1.19),
+      // Ganancia neta = ganancia bruta − egresos (÷1,19 solo si el egreso indica que el monto incluye IVA)
+      netProfit: grossProfit - expensesTotalForNetProfit,
       topProfitableSales,
       recentTopProducts,
       cancelledSales,
@@ -1968,7 +1970,7 @@ export default function DashboardPage() {
               {formatCurrency(metrics.netProfit)}
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              Ganancia bruta − egresos (sin IVA)
+              Ganancia bruta − egresos (IVA solo si el egreso está marcado con IVA)
             </p>
           </div>
         </div>

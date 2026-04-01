@@ -346,7 +346,7 @@ export default function EgresosPage() {
                         </div>
 
                         {/* Grid Total, Método, Estado, Fecha (igual que ventas) */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                           <div>
                             <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total</div>
                             <div className="text-base font-semibold text-gray-900 dark:text-white">
@@ -358,6 +358,12 @@ export default function EgresosPage() {
                             <Badge className={`${getPaymentMethodBadgeClass(expense.paymentMethod)} flex items-center gap-1 w-fit text-sm whitespace-nowrap`}>
                               {formatPaymentMethod(expense.paymentMethod)}
                             </Badge>
+                          </div>
+                          <div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">IVA en el monto</div>
+                            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                              {expense.includesVat ? 'Sí (÷ 1,19 en utilidad)' : 'No (resta íntegro)'}
+                            </div>
                           </div>
                           <div>
                             <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Estado</div>

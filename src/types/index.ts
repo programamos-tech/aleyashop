@@ -142,6 +142,8 @@ export interface Expense {
   amount: number
   date: string
   paymentMethod: string
+  /** true = el monto incluye IVA 19% (se usa base sin IVA en ganancia neta). false = sin IVA, se resta el monto íntegro. */
+  includesVat: boolean
   notes?: string
   status?: 'active' | 'cancelled'
   cancelledAt?: string | null
