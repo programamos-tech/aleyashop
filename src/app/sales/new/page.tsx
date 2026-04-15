@@ -28,6 +28,7 @@ import { useClients } from '@/contexts/clients-context'
 import { useProducts } from '@/contexts/products-context'
 import { useSales } from '@/contexts/sales-context'
 import { useAuth } from '@/contexts/auth-context'
+import { clientMatchesQuery } from '@/lib/client-search'
 
 // Constante para identificar la tienda principal
 const MAIN_STORE_ID = '00000000-0000-0000-0000-000000000001'
@@ -177,23 +178,12 @@ export default function NewSalePage() {
     return storeKeywords.some(keyword => nameLower.includes(keyword))
   }
 
-  // Filtrar clientes (excluir clientes de tiendas)
+  // Filtrar clientes (excluir clientes de tiendas); con búsqueda por nombre, email, teléfono y documento
   const filteredClients = useMemo(() => {
-    // Primero filtrar clientes de tiendas
     const nonStoreClients = clients.filter(client => !isStoreClient(client))
-    
-    if (!clientSearch.trim()) {
-      // Si no hay búsqueda, mostrar todos los clientes (limitado)
-      return nonStoreClients.slice(0, 10)
-    }
-    const searchLower = clientSearch.toLowerCase().trim()
-    return nonStoreClients.filter(client =>
-      client && (
-        (client.name && client.name.toLowerCase().includes(searchLower)) ||
-        (client.email && client.email.toLowerCase().includes(searchLower)) ||
-        (client.phone && client.phone.toLowerCase().includes(searchLower))
-      )
-    )
+    const q = clientSearch.trim()
+    if (!q) return nonStoreClients
+    return nonStoreClients.filter(client => client && clientMatchesQuery(client, q))
   }, [clients, clientSearch])
 
   // Filtrar productos - SIMPLIFICADO como en credit-modal

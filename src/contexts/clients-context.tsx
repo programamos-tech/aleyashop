@@ -47,8 +47,19 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
   }, [user?.storeId])
 
   const getAllClients = useCallback(async () => {
-    await fetchPage(currentPage)
-  }, [fetchPage, currentPage])
+    setLoading(true)
+    try {
+      const data = await ClientsService.getAllClients()
+      setClients(data)
+      setTotalClients(data.length)
+      setCurrentPage(1)
+    } catch (error) {
+      setClients([])
+      setTotalClients(0)
+    } finally {
+      setLoading(false)
+    }
+  }, [user?.storeId])
 
   const getClientById = async (id: string): Promise<Client | null> => {
     try {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useLayoutEffect } from 'react'
 import { ClientTable } from '@/components/clients/client-table'
 import { ClientModal } from '@/components/clients/client-modal'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
@@ -10,8 +10,13 @@ import { toast } from 'sonner'
 import { Users } from 'lucide-react'
 
 export default function ClientsPage() {
-  const { clients, loading, totalClients, currentPage, pageSize, createClient, updateClient, deleteClient, getAllClients, fetchPage } = useClients()
+  const { clients, loading, totalClients, currentPage, pageSize, createClient, updateClient, deleteClient, fetchPage } = useClients()
   const [isModalOpen, setIsModalOpen] = useState(false)
+
+  // Vista paginada desde el servidor (evita listar cientos de filas si el contexto venía de getAllClients en ventas)
+  useLayoutEffect(() => {
+    fetchPage(1)
+  }, [fetchPage])
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null)

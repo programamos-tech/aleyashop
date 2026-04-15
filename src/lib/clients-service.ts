@@ -7,33 +7,35 @@ export class ClientsService {
   // Obtener todos los clientes
   static async getAllClients(): Promise<Client[]> {
     try {
-      const user = getCurrentUser()
       const storeId = getCurrentUserStoreId()
       const MAIN_STORE_ID = '00000000-0000-0000-0000-000000000001'
-      
-      let query = supabase
-        .from('clients')
-        .select('*')
+      const chunk = 1000
+      const allRows: any[] = []
+      let offset = 0
 
-      // Filtrar por store_id:
-      // - Si storeId es null o MAIN_STORE_ID, solo mostrar clientes de la tienda principal (store_id = MAIN_STORE_ID o null)
-      // - Si storeId es una microtienda, solo mostrar clientes de esa microtienda
-      if (!storeId || storeId === MAIN_STORE_ID) {
-        // Tienda principal: solo clientes de la tienda principal (store_id = MAIN_STORE_ID o null)
-        query = query.or(`store_id.is.null,store_id.eq.${MAIN_STORE_ID}`)
-      } else {
-        // Microtienda: solo clientes de esa microtienda
-        query = query.eq('store_id', storeId)
+      for (;;) {
+        let query = supabase.from('clients').select('*')
+
+        if (!storeId || storeId === MAIN_STORE_ID) {
+          query = query.or(`store_id.is.null,store_id.eq.${MAIN_STORE_ID}`)
+        } else {
+          query = query.eq('store_id', storeId)
+        }
+
+        const { data, error } = await query
+          .order('created_at', { ascending: false })
+          .range(offset, offset + chunk - 1)
+
+        if (error) {
+          return []
+        }
+        if (!data?.length) break
+        allRows.push(...data)
+        if (data.length < chunk) break
+        offset += chunk
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false })
-
-      if (error) {
-      // Error silencioso en producción
-        return []
-      }
-
-      return data.map((client: any) => ({
+      return allRows.map((client: any) => ({
         id: client.id,
         name: client.name,
         email: client.email || '',
@@ -51,7 +53,6 @@ export class ClientsService {
         createdAt: client.created_at
       }))
     } catch (error) {
-      // Error silencioso en producción
       return []
     }
   }

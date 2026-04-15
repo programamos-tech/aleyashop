@@ -28,6 +28,7 @@ import { useProducts } from '@/contexts/products-context'
 import { useAuth } from '@/contexts/auth-context'
 import { ProductsService } from '@/lib/products-service'
 import { ClientModal } from '@/components/clients/client-modal'
+import { clientMatchesQuery } from '@/lib/client-search'
 
 // Constante para identificar la tienda principal
 const MAIN_STORE_ID = '00000000-0000-0000-0000-000000000001'
@@ -158,18 +159,15 @@ export function SaleModal({ isOpen, onClose, onSave, sale, onUpdate }: SaleModal
     if (!client || !client.name) return false
     const nameLower = client.name.toLowerCase()
     // Filtrar clientes que sean tiendas internas
-    const storeKeywords = ['aleya', 'tienda', 'sucursal']
+    const storeKeywords = ['aleya', 'store', 'tienda', 'microtienda', 'micro tienda', 'sucursal']
     return storeKeywords.some(keyword => nameLower.includes(keyword))
   }
 
   const filteredClients = useMemo(() => {
-    // Primero filtrar clientes de tiendas
     const nonStoreClients = clients.filter(client => !isStoreClient(client))
-    
-    if (!clientSearch.trim()) return nonStoreClients
-    return nonStoreClients.filter(client =>
-      client && client.name && client.name.toLowerCase().includes(clientSearch.toLowerCase())
-    )
+    const q = clientSearch.trim()
+    if (!q) return nonStoreClients
+    return nonStoreClients.filter(client => client && clientMatchesQuery(client, q))
   }, [clients, clientSearch])
 
   const [searchedProducts, setSearchedProducts] = useState<Product[]>([])
