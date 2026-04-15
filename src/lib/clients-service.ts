@@ -399,14 +399,24 @@ export class ClientsService {
   // Buscar clientes
   static async searchClients(query: string): Promise<Client[]> {
     try {
-      const user = getCurrentUser()
       const storeId = getCurrentUserStoreId()
       const MAIN_STORE_ID = '00000000-0000-0000-0000-000000000001'
-      
-      let dbQuery = supabase
-        .from('clients')
-        .select('*')
-        .or(`name.ilike.%${query}%,email.ilike.%${query}%,document.ilike.%${query}%`)
+
+      const raw = query.trim()
+      if (!raw) return []
+
+      const words = raw.split(/\s+/).filter(Boolean)
+      const safeWords = words.map(w => w.replace(/,/g, '')).filter(Boolean)
+      if (safeWords.length === 0) return []
+
+      const ilikePattern =
+        safeWords.length > 1
+          ? `%${safeWords.join('%')}%`
+          : `%${safeWords[0]}%`
+
+      let dbQuery = supabase.from('clients').select('*').or(
+        `name.ilike.${ilikePattern},email.ilike.${ilikePattern},document.ilike.${ilikePattern},phone.ilike.${ilikePattern},document_number.ilike.${ilikePattern}`
+      )
 
       // Filtrar por store_id:
       // - Si storeId es null o MAIN_STORE_ID, solo mostrar clientes de la tienda principal (store_id = MAIN_STORE_ID o null)

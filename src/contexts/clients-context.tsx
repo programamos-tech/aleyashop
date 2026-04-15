@@ -118,14 +118,13 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const searchClients = async (query: string): Promise<Client[]> => {
+  const searchClients = useCallback(async (query: string): Promise<Client[]> => {
     try {
       return await ClientsService.searchClients(query)
     } catch (error) {
-      // Error silencioso en producción
       return []
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchPage(1)

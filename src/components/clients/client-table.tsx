@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ import {
   RefreshCcw
 } from 'lucide-react'
 import { Client } from '@/types'
+import { useClients } from '@/contexts/clients-context'
 
 interface ClientTableProps {
   clients: Client[]
@@ -42,8 +43,39 @@ export function ClientTable({
   onRefresh
 }: ClientTableProps) {
   const router = useRouter()
+  const { searchClients } = useClients()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
+  const [searchResults, setSearchResults] = useState<Client[] | null>(null)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const searchReqId = useRef(0)
+
+  const isSearchActive = searchTerm.trim().length > 0
+
+  useEffect(() => {
+    const q = searchTerm.trim()
+    if (!q) {
+      searchReqId.current += 1
+      setSearchResults(null)
+      setSearchLoading(false)
+      return
+    }
+    const id = ++searchReqId.current
+    setSearchLoading(true)
+    const t = setTimeout(async () => {
+      try {
+        const res = await searchClients(q)
+        if (id === searchReqId.current) {
+          setSearchResults(res)
+        }
+      } finally {
+        if (id === searchReqId.current) {
+          setSearchLoading(false)
+        }
+      }
+    }, 350)
+    return () => clearTimeout(t)
+  }, [searchTerm, searchClients])
 
   const handleViewClient = (clientId: string) => {
     router.push(`/clients/${clientId}`)
@@ -79,15 +111,11 @@ export function ClientTable({
 
   const types = ['all'] // Ya no hay filtro por tipo
 
-  const filteredClients = clients.filter(client => {
-    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.phone.includes(searchTerm) ||
-                         client.document.includes(searchTerm) ||
-                         client.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.state.toLowerCase().includes(searchTerm.toLowerCase())
+  const baseList = isSearchActive ? (searchResults ?? []) : clients
+
+  const filteredClients = baseList.filter(client => {
     const matchesType = filterType === 'all' || client.type === filterType
-    return matchesSearch && matchesType
+    return matchesType
   })
 
   return (
@@ -142,7 +170,7 @@ export function ClientTable({
               <Search className="absolute left-2.5 md:left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar cliente..."
+                placeholder="Nombre, cédula, teléfono, email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 md:pl-10 pr-4 py-2 md:py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#fce4f0]0 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
@@ -156,14 +184,21 @@ export function ClientTable({
       {/* Table */}
       <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <CardContent className="p-0">
-          {filteredClients.length === 0 ? (
+          {searchLoading && isSearchActive ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#f29fc8] mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">Buscando clientes…</p>
+            </div>
+          ) : filteredClients.length === 0 ? (
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                 No se encontraron clientes
               </h3>
               <p className="text-gray-500 dark:text-gray-400">
-                Comienza creando un nuevo cliente
+                {isSearchActive
+                  ? 'Prueba con otra cédula, nombre o teléfono.'
+                  : 'Comienza creando un nuevo cliente'}
               </p>
             </div>
           ) : (
@@ -337,8 +372,8 @@ export function ClientTable({
                 })}
               </div>
 
-              {/* Paginación */}
-              {totalClients > pageSize && onPageChange && (
+              {/* Paginación (solo sin búsqueda; la búsqueda usa toda la tienda) */}
+              {!isSearchActive && totalClients > pageSize && onPageChange && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 md:px-6 py-3 md:py-4 border-t border-gray-200 dark:border-gray-700">
                   <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
                     <span className="hidden sm:inline">Mostrando </span>
